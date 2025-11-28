@@ -1,13 +1,7 @@
-
-
-
-
-
-
 ############################################################################################
 ############################################################################################
 ############################################################################################
-### CAULDRON PROJECT
+### CAULDRON: MAIN
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -20,7 +14,7 @@ def main():
 
     # This part is for later:
     # Continue_Translation("KR5a0006 - gpt-5.1 - PUNlow - GLSELlow - TRANSmedium - GLEXTlow.pkl",\
-    #                     instructions = InstructionsProfile())
+    #                     instructions = PromptEngine())
 
 
 ############################################################################################
@@ -33,7 +27,7 @@ from openai import OpenAI
 # Cauldron modules:
 from kanripo_fetch import fetch_from_kanripo
 from glossary_dictate import *
-from gpt_engines import *
+from PromptEngine import PromptEngine
 
 
 ############################################################################################
@@ -67,10 +61,10 @@ def Translate_From_Kanripo(kanripo_code, instructions = None, glossary = None):
     text = KanripoText(kanripo_code)
 
     if instructions:
-        text.instructions = instructions
+        text.prompt_engine = instructions
 
     if glossary:
-        update_glossary(text.instructions.glossary, load_glossary(glossary))
+        update_glossary(text.prompt_engine.glossary, load_glossary(glossary))
         
     text.resume_translation()
 
@@ -87,10 +81,10 @@ def Continue_Translation(filename, instructions = None, glossary = None):
     text = load_pickle(filename)
 
     if instructions:
-        text.instructions = instructions
+        text.prompt_engine = instructions
 
     if glossary:
-        update_glossary(text.instructions.glossary, load_glossary(glossary))
+        update_glossary(text.prompt_engine.glossary, load_glossary(glossary))
 
     text.resume_translation()
 
@@ -108,13 +102,13 @@ def Continue_Translation(filename, instructions = None, glossary = None):
 class KanripoText:
     
 
-    def __init__(self, kanripo_code: str):
+    def __init__(self, kanripo_code: str, prompt_engine = None):
 
         self.kanripo_code = kanripo_code
 
-        self.Chinese_title, self.properties, self.page_labels, self.segments = \
+        self.chinese_title, self.properties, self.page_labels, self.segments = \
                                                     fetch_from_kanripo(self.kanripo_code)
-        self.instructions = InstructionsProfile()
+        self.prompt_engine = PromptEngine() if prompt_engine is None else prompt_engine
         
         self.translated_title = "Untranslated Title"
         
@@ -134,7 +128,7 @@ class KanripoText:
         self.number_of_completed_segments = 0
         
 
-        save_pickle(self, f"{self.kanripo_code} {self.Chinese_title}.pkl")
+        save_pickle(self, f"{self.kanripo_code} {self.chinese_title}.pkl")
         
 
     def resume_translation(self):
@@ -146,12 +140,11 @@ class KanripoText:
 
             print(f"\n{self.page_labels[i]}\n")
 
-            #punctuate:
-
-            if i == 0:
-                self.punctuated_segments.append(GPT_Punctuator(i, self))
-            if i < len(self.segments)-1:
-                self.punctuated_segments.append(GPT_Punctuator(i+1, self))                           
+            #punctuate (if not already punctuated):
+            if i == 0 and len(self.punctuated_segments) == 0:
+                self.punctuated_segments.append(self.prompt_engine.punctuate(i, self))
+            if i < len(self.segments)-1 and len(self.punctuated_segments) == i+1:
+                self.punctuated_segments.append(self.prompt_engine.punctuate(i+1, self))                           
             
             #create_glossaries:
         
@@ -161,25 +154,24 @@ class KanripoText:
             fol_segment =self.punctuated_segments[i+1] if i < len(self.segments)-1 else None
 
 
-            selection_text = GPT_Glossary_Selector(self.instructions,
-                                                    self.punctuated_segments[i],
+            selection_text = self.prompt_engine.select_glossary(self.punctuated_segments[i],
                                                     preceding_section = pre_segment,
                                                     following_section = fol_segment)
 
             for term in selection_text.splitlines():
-                    if term in self.instructions.glossary:
-                           segment_glossary[term] = self.instructions.glossary[term]
+                    if term in self.prompt_engine.glossary:
+                           segment_glossary[term] = self.prompt_engine.glossary[term]
                 
             self.segment_glossaries.append(segment_glossary)
             
             # translate:
         
-            self.translated_segments.append(GPT_Translator(i, self))
+            self.translated_segments.append(self.prompt_engine.translate(i, self))
 
             # extract_glossary:
         
-            extracted_glossary = GPT_Glossator(i, self)
-            update_glossary(self.instructions.glossary, extracted_glossary)
+            extracted_glossary = self.prompt_engine.extract_glossary(i, self)
+            update_glossary(self.prompt_engine.glossary, extracted_glossary)
             update_glossary(self.translation_glossary, extracted_glossary)
 
             # save progress:
@@ -190,26 +182,24 @@ class KanripoText:
     def translate_title(self):
         
 
-        selection_text = GPT_Glossary_Selector(self.instructions,
-                                               self.Chinese_title)
+        selection_text = self.prompt_engine.select_glossary(self.chinese_title)
         
-        segment_glossary = {}
+        title_glossary = {}
         for term in selection_text.splitlines():
-                if term in self.instructions.glossary:
-                       segment_glossary[term] = self.instructions.glossary[term]
+                if term in self.prompt_engine.glossary:
+                       title_glossary[term] = self.prompt_engine.glossary[term]
 
-        self.translated_title = GPT_Title_Translator(self.instructions,
-                                                  segment_glossary,
-                                                  self.Chinese_title)
+        self.translated_title = self.prompt_engine.translate_title(title_glossary,
+                                                                  self.chinese_title)
 
-        glossary_additions = GPT_Title_Glossator(self, self.translated_title)
-        update_glossary(self.instructions.glossary, glossary_additions)
+        glossary_additions = self.prompt_engine.extract_glossary_from_title(self, self.translated_title)
+        update_glossary(self.prompt_engine.glossary, glossary_additions)
         update_glossary(self.translation_glossary, glossary_additions)
                                     
 
     def full_title(self):
         fulltitle = \
-            f"{self.kanripo_code} {self.Chinese_title} - {self.instructions.title_extension}"
+            f"{self.kanripo_code} {self.chinese_title} - {self.prompt_engine.title_extension}"
         return fulltitle
 
             
@@ -276,7 +266,7 @@ def scribe_translation_to_word_document(text):
 
     # 1) Chinese title
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run_cn = p.add_run("\n\n\n" + text.Chinese_title)
+    run_cn = p.add_run("\n\n\n" + text.chinese_title)
     run_cn.font.name = 'SimSun'
     run_cn.font.size = Pt(28)
     run_cn.font.bold = True
@@ -305,10 +295,10 @@ def scribe_translation_to_word_document(text):
     for prop in text.properties:
         properties_text += (prop + "\n\n")
     GPT_properties_text = ("GPT Prompting Properties:\n\n" + \
-             f"punctuation reasoning: {text.instructions.punctuation_GPT_reasoning}\n" + \
-             f"glossary selection reasoning: {text.instructions.glossary_selection_GPT_reasoning}\n" + \
-             f"translation reasoning: {text.instructions.translation_GPT_reasoning}\n" + \
-             f"glossary extraction reasoning: {text.instructions.glossary_extraction_GPT_reasoning}")
+        f"punctuation reasoning: {text.prompt_engine.punctuation_GPT_reasoning}\n" + \
+        f"glossary selection reasoning: {text.prompt_engine.glossary_selection_GPT_reasoning}\n" + \
+        f"translation reasoning: {text.prompt_engine.translation_GPT_reasoning}\n" + \
+        f"glossary extraction reasoning: {text.prompt_engine.glossary_extraction_GPT_reasoning}")
     run_num = p.add_run(f"{properties_text}\n{GPT_properties_text}")
     run_num.font.name = 'Times New Roman'
     run_num.font.size = Pt(12)
