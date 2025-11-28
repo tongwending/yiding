@@ -47,7 +47,7 @@ class KanripoText:
         self.number_of_completed_segments = 0
         
 
-        save_as_pickle(f"{self.kanripo_code} {self.chinese_title}.pkl")
+        self.save_as_pickle(f"{self.kanripo_code} {self.chinese_title}.pkl")
         
 
     def resume_translation(self):
@@ -95,7 +95,7 @@ class KanripoText:
 
             # save progress:
             self.number_of_completed_segments +=1
-            save_as_pickle(f"{self.full_title()} - Translation.pkl")
+            self.save_as_pickle(f"{self.full_title()} - Translation.pkl")
 
 
     def translate_title(self):
@@ -124,7 +124,7 @@ class KanripoText:
     
     def save_as_pickle(self, filename):
         with open(filename, "wb") as f:
-            pickle.dump(obj, f)
+            pickle.dump(self, f)
 
             
     def translation_to_docx(self):

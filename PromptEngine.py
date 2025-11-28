@@ -9,8 +9,6 @@
 
 from openai import OpenAI
 
-from KanripoText import KanripoText
-
 from glossary_dictate import *
 
 
@@ -100,15 +98,16 @@ class PromptEngine:
         conversation_history = ""
         if preceding_section:
             conversation_history = (conversation_history +
-                                    "Preceding original text:\n" +
+                                    "Preceding segment:\n" +
                                     preceding_section +
-                                    "\n\nPreceding punctuated text:\n" +
+                                    "\n\nPreceding segment punctuated:\n" +
                                     preceding_punctuated)
-        if preceding_section and following_section:
-            conversation_history = conversation_history + "\n\n"
+            
+        conversation_history += f"\n\n\nCurrent segment:\n{text.segments[i]}"
+
         if following_section:
-            conversation_history = (conversation_history +
-                                    "Following original text:\n" +
+            conversation_history = (conversation_history + "\n\n\n" +
+                                    "Following segment:\n" +
                                     following_section)
         
         print(text.segments[i])
@@ -122,12 +121,8 @@ class PromptEngine:
                         "content": self.punctuation_instructions
                     },
                     {
-                        "role": "assistant",            
-                        "content": conversation_history
-                    },
-                    {
                         "role": "user", 
-                        "content": text.segments[i]
+                        "content": conversation_history
                     }],
                 reasoning={"effort": self.punctuation_GPT_reasoning},
                 text={"verbosity": self.punctuation_GPT_verbosity}
@@ -153,13 +148,15 @@ class PromptEngine:
         conversation_history = ""
         if preceding_section:
             conversation_history = (conversation_history +
-                                    "Preceding text:\n" +
+                                    "Preceding segment:\n" +
                                     preceding_section)
-        if preceding_section and following_section:
-            conversation_history = conversation_history + "\n\n"
+
+        conversation_history += f"\n\n\nCurrent segment:\n{current_section}"
+
+
         if following_section:
-            conversation_history = (conversation_history +
-                                    "Following text:\n" +
+            conversation_history = (conversation_history + "\n\n\n" +
+                                    "Following segment:\n" +
                                     following_section)
 
         print(current_section + "\n")
@@ -173,12 +170,8 @@ class PromptEngine:
                         "content": comb_instructions
                     },
                     {
-                        "role": "assistant",            
-                        "content": conversation_history
-                    },
-                    {
                         "role": "user", 
-                        "content": current_section
+                        "content": conversation_history
                     }],
                 reasoning={"effort": self.glossary_selection_GPT_reasoning},
                 text={"verbosity": self.glossary_selection_GPT_verbosity}
@@ -215,19 +208,18 @@ class PromptEngine:
                 f"Title: {text.chinese_title}\nTranslation: {text.translated_title}\n\n"
         if preceding_section:
             conversation_history = (conversation_history +
-                                    "Preceding Chinese text:\n" +
+                                    "Preceding segment:\n" +
                                     preceding_section)
-            if preceding_section or following_section:
-                conversation_history = conversation_history + "\n\n"
         if preceding_translation:
-            conversation_history = (conversation_history +
-                                    "Preceding English translation:\n" +
+            conversation_history = (conversation_history + "\n\n" +
+                                    "Preceding segment translation:\n" +
                                     preceding_translation)
-            if following_section:
-                conversation_history = conversation_history + "\n\n\n"
+
+        conversation_history += f"\n\n\nCurrent segment:\n{text.punctuated_segments[i]}"
+        
         if following_section:
-            conversation_history = (conversation_history +
-                                    "Following Chinese text:\n" +
+            conversation_history = (conversation_history + "\n\n\n" +
+                                    "Following segment:\n" +
                                     following_section)
             
             
@@ -242,12 +234,8 @@ class PromptEngine:
                         "content": comb_instructions
                     },
                     {
-                        "role": "assistant",            
-                        "content": conversation_history
-                    },
-                    {
                         "role": "user", 
-                        "content": text.punctuated_segments[i]
+                        "content": conversation_history
                     }],
                 reasoning={"effort": self.translation_GPT_reasoning},
                 text={"verbosity": self.translation_GPT_verbosity}
@@ -272,24 +260,24 @@ class PromptEngine:
                                     if i<len(text.punctuated_segments)-1 else None
 
         
-        text_and_translation = ("Chinese original:\n" + text.punctuated_segments[i] + "\n\n" +
-                                "English translation:\n" + text.translated_segments[i])
+        text_and_translation = ("Current segment:\n" + text.punctuated_segments[i] + "\n\n" +
+                                "Current segment translation:\n" + text.translated_segments[i])
 
 
         conversation_history = ""
+        
         if preceding_section:
-            conversation_history = ("Preceding Chinese text:\n" + preceding_section)
-            if preceding_section or following_section:
-                conversation_history = conversation_history + "\n\n"
+            conversation_history = ("Preceding segment:\n" + preceding_section)
         if preceding_translation:
-            conversation_history = (conversation_history +
-                                    "Preceding translation:\n" +
+            conversation_history = (conversation_history + "\n\n" +
+                                    "Preceding segment translation:\n" +
                                     preceding_translation)
-            if following_section:
-                conversation_history = conversation_history + "\n\n\n"
+
+        conversation_history = conversation_history + "\n\n\n" + text_and_translation
+        
         if following_section:
-            conversation_history = (conversation_history +
-                                    "Following Chinese text:\n" +
+            conversation_history = (conversation_history + "\n\n\n" +
+                                    "Following segment:\n" +
                                     following_section)
 
         response = self.client.responses.create(
@@ -300,12 +288,8 @@ class PromptEngine:
                         "content": self.glossary_extraction_instructions
                     },
                     {
-                        "role": "assistant",            
-                        "content": conversation_history
-                    },
-                    {
                         "role": "user", 
-                        "content": text_and_translation
+                        "content": conversation_history
                     }],
                 reasoning={"effort": self.glossary_extraction_GPT_reasoning},
                 text={"verbosity": self.glossary_extraction_GPT_verbosity}
@@ -332,8 +316,6 @@ class PromptEngine:
                              stylized_glossary)
 
 
-        conversation_history = ""
-
         print(stylized_glossary + "\n\n" + title + "\n")
         
 
@@ -343,10 +325,6 @@ class PromptEngine:
                     {
                         "role": "developer",
                         "content": comb_instructions
-                    },
-                    {
-                        "role": "assistant",            
-                        "content": conversation_history
                     },
                     {
                         "role": "user", 
@@ -370,9 +348,6 @@ class PromptEngine:
         
         text_and_translation = ("Chinese original:\n" + text.chinese_title + "\n\n" +
                                 "English translation:\n" + title)
-
-        conversation_history = ""
-
         
         response = self.client.responses.create(
                 model = self.glossary_extraction_GPT_model,
@@ -380,10 +355,6 @@ class PromptEngine:
                     {
                         "role": "developer",
                         "content": self.glossary_extraction_instructions
-                    },
-                    {
-                        "role": "assistant",            
-                        "content": conversation_history
                     },
                     {
                         "role": "user", 
@@ -408,7 +379,7 @@ class PromptEngine:
 
 punctuation_instructions = (
 """The user will give you a section of Chinese text to punctuate.
-For context and continuation, the assistant will provide the punctuated preceding text and yet to be punctuated following text.
+For context and continuation, the punctuated preceding segment and the yet to be punctuated following segment will be provided. Punctuate only the "Current segment".
 If the text is clearly in verses (for example, as in a poem or song) keep the structure.
 Be mindful of new lines. Do not follow the new lines of the original text unless they are purposefully lined that way. Change line only if it makes sense in the structure of the text.
 Use 《》(or〈〉) for titles of works.
@@ -421,12 +392,11 @@ Do not add anything else in the response; give only the punctuated text.
 If the user only gives an empty text or a single underscore character, respond back with a single underscore character.""")
 
 glossary_extraction_instructions = (
-"""The user will give you a section of Chinese text.
-For context and continuation, the assistant will provide the preceding and following texts.
+"""The user will give you a segment of Chinese text to create a list of the key terms of the Chinese text and how they are translated by provided translation.
 
-Create a list of the key terms of the Chinese text and how they are translated by provided translation.
-In your answer you should include only the list following the excct format below: 
+For context and continuation, the preceding and following segments will be provided. Select terms only from the "Current segment" (including terms that might be separated from the segment divide).
 
+In your answer you should include only the list following the excact format below: 
 Chinese term (accented Pinyin) = English translation
 
 - Do not add your own translation of the term (use only what is found in the corresponding English translation).
@@ -445,7 +415,9 @@ Chinese term (accented Pinyin) = English translation
 - If the user only gives an empty text or a single underscore character, respond back with a single underscore character.""")
 
 translation_instructions = (
-"""Translate to English the given section of Chinese text.
+"""Translate to English the given segment of Chinese text.
+For context and continuation, the preceding segment, its translation, and the yet to be translated following section will be provided. Translate only the "Current segment".
+Make sure to continue from the previous section's translation, expecially if left in the middle of a sentence.
 The translation should be elegant.
 If the text is clearly in verses (for example, as in a poem or song) keep the structure.
 Keep parenthesises and other elements, but do not keep new lines if they don't meaningfully contribute to the structure of the text.
@@ -455,8 +427,7 @@ If the text is quoting something, use “ ”.
 If a part is clearly the title or header of a section, make sure that an empty line precedes, that you use appropriate capitalization for title or header, and that the title or header has the follow form:
 - Title of Section -
 Do not add empty lines between paragraphs except if there is a clear strong distinction in the text's structure, such as the intruduction of a new header or a lengthy quote.
-Start paragraphs with indentation, except in the case of introducing structured texts (such as verses of a song).
-For context and continuation, the assistant will provide the preceding section and its translation as well as the yet to be translated following section. Make sure to continue from the previous section's translation, expecially if left in the middle of a sentence.
+Start paragraphs with indentation, except in the case of introducing structured texts (such as verses of a song) or continueing directly from the preceding segment.
 Do not end with … if the text continue to the next segment.
 Do not include your own explainations or comments; only the translation.
 Do not include parentheses of your own; only the ones that allready exist.
@@ -474,10 +445,10 @@ Do not add anything else in the response; give only the translation.
 If the user only gives an empty text or a single underscore character, respond back with a single underscore character.""")
 
 glossary_selection_instructions = (
-"""The user will give you a Chinese text and you will select the Chinese terms needed for the translation of the text into English.
+"""The user will give you a segment of Chinese text and you will select the Chinese terms needed for the translation of the text into English.
 Do not select whole phrases, except in the case of idiomatic expresions, in which case give both the phrase and the terms it is comprised of.
 If there is a title, select the title as a whole as well as each of its terms individually.
-For context and continuation, the assistant will provide the punctuated preceding text and yet to be punctuated following text.
+For context and continuation, the assistant will provide the punctuated preceding segment and yet to be punctuated following segment. Select terms only from the "Current segment".
 Write the selected terms as a list (each on its own line without any panctuation):
 
 term 1
