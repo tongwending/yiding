@@ -9,6 +9,8 @@
 
 from openai import OpenAI
 
+from KanripoText import KanripoText
+
 from glossary_dictate import *
 
 
