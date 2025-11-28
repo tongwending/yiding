@@ -1,1 +1,1 @@
-my_sk = '[REDACTED]'
+my_sk = '?'
