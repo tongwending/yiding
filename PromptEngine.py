@@ -11,6 +11,8 @@ from openai import OpenAI
 
 from glossary_dictate import *
 
+from text_manipulators import *
+
 
 ############################################################################################
 
@@ -112,29 +114,42 @@ class PromptEngine:
         
         print(text.segments[i])
         
+        
+        attempts = 0
+        response_is_uncorrupted = False
+        
+        while response_is_uncorrupted == False and attempts < 3:
+            response = self.client.responses.create(
+                    model = self.punctuation_GPT_model,
+                    input=[
+                        {
+                            "role": "developer",
+                            "content": self.punctuation_instructions
+                        },
+                        {
+                            "role": "user", 
+                            "content": conversation_history
+                        }],
+                    reasoning={"effort": self.punctuation_GPT_reasoning},
+                    text={"verbosity": self.punctuation_GPT_verbosity}
+                    )         
 
-        response = self.client.responses.create(
-                model = self.punctuation_GPT_model,
-                input=[
-                    {
-                        "role": "developer",
-                        "content": self.punctuation_instructions
-                    },
-                    {
-                        "role": "user", 
-                        "content": conversation_history
-                    }],
-                reasoning={"effort": self.punctuation_GPT_reasoning},
-                text={"verbosity": self.punctuation_GPT_verbosity}
-                )         
+            punctuated_text = response.output_text
 
-        punctuated_text = response.output_text
+            print(punctuated_text + "\n")
 
+            attempts += 1
 
-        print(punctuated_text + "\n")
+            # Ensure no original Chinese character was corrupted:
+            if strip_punctuation(text.segments[i]) == strip_punctuation(punctuated_text):
+                response_is_uncorrupted = True
+
+        if response_is_uncorrupted == False:
+            raise ValueError("GPT's response corrupted the original text.")
         
         
         return punctuated_text
+    
 
 
 ############################################################################################
