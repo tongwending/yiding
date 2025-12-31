@@ -111,7 +111,7 @@ class KanripoText:
         self.translated_title = self.prompt_engine.translate_title(title_glossary,
                                                                   self.chinese_title)
 
-        glossary_additions = self.prompt_engine.extract_glossary_from_title(self, self.translated_title)
+        glossary_additions = self.prompt_engine.extract_glossary_from_title(self)
         update_glossary(self.prompt_engine.glossary, glossary_additions)
         update_glossary(self.translation_glossary, glossary_additions)
                                     
