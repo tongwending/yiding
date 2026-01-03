@@ -13,7 +13,7 @@ from glossary_dictate import *
 
 from text_manipulators import *
 
-from instruction_prompts import *
+import gpt_attributes
 
 
 ############################################################################################
@@ -29,38 +29,36 @@ class PromptEngine:
         client = OpenAI(api_key=my_sk)  # Reads the OpenAI API Key.
         self.client = client
         
-        # reasoning options: "none" | "low" | "medium" | "high"
-        # verbosity option: "low" | "medium" | "high"
 
-        self.punctuation_instructions = punctuation_instructions
-        self.punctuation_GPT_model = "gpt-5.1"
-        self.punctuation_GPT_reasoning = "none"
-        self.punctuation_GPT_verbosity = "low"
-        self.punctuation_GPT_temperature = 0
-                
-        self.glossary_selection_instructions = glossary_selection_instructions
-        self.glossary_selection_GPT_model = "gpt-5.1"
-        self.glossary_selection_GPT_reasoning = "none"
-        self.glossary_selection_GPT_verbosity = "high"
-        self.glossary_selecion_GPT_temperature = 0
-        
-        self.translation_instructions = translation_instructions
-        self.translation_GPT_model = "gpt-5.1"
-        self.translation_GPT_reasoning = "none"
-        self.translation_GPT_verbosity = "low"
-        self.translation_GPT_temperature = 0
-        
-        self.title_translation_instructions = title_translation_instructions
-        self.title_translation_GPT_model = "gpt-5.1"
-        self.title_translation_GPT_reasoning = self.translation_GPT_reasoning
-        self.title_translation_GPT_verbosity = "low"
-        self.title_translation_GPT_temperature = 0
+        self.PUNCTUATION_INSTRUCTIONS = gpt_attributes.PUNCTUATION_INSTRUCTIONS
+        self.PUNCTUATION_MODEL = gpt_attributes.PUNCTUATION_MODEL
+        self.PUNCTUATION_REASONING = gpt_attributes.PUNCTUATION_REASONING
+        self.PUNCTUATION_VERBOSITY = gpt_attributes.PUNCTUATION_VERBOSITY
+        self.PUNCTUATION_TEMPERATURE = gpt_attributes.PUNCTUATION_TEMPERATURE
 
-        self.glossary_extraction_instructions = glossary_extraction_instructions
-        self.glossary_extraction_GPT_model = "gpt-5.1"
-        self.glossary_extraction_GPT_reasoning = "none"
-        self.glossary_extraction_GPT_verbosity = "high"
-        self.glossary_extraction_GPT_temperature = 0
+        self.GLOSSARY_SELECTION_INSTRUCTIONS = gpt_attributes.GLOSSARY_SELECTION_INSTRUCTIONS
+        self.GLOSSARY_SELECTION_MODEL = gpt_attributes.GLOSSARY_SELECTION_MODEL
+        self.GLOSSARY_SELECTION_REASONING = gpt_attributes.GLOSSARY_SELECTION_REASONING
+        self.GLOSSARY_SELECTION_VERBOSITY = gpt_attributes.GLOSSARY_SELECTION_VERBOSITY
+        self.GLOSSARY_SELECTION_TEMPERATURE = gpt_attributes.GLOSSARY_SELECTION_TEMPERATURE
+
+        self.TRANSLATION_INSTRUCTIONS = gpt_attributes.TRANSLATION_INSTRUCTIONS
+        self.TRANSLATION_MODEL = gpt_attributes.TRANSLATION_MODEL
+        self.TRANSLATION_REASONING = gpt_attributes.TRANSLATION_REASONING
+        self.TRANSLATION_VERBOSITY = gpt_attributes.TRANSLATION_VERBOSITY
+        self.TRANSLATION_TEMPERATURE = gpt_attributes.TRANSLATION_TEMPERATURE
+
+        self.TITLE_TRANSLATION_INSTRUCTIONS = gpt_attributes.TITLE_TRANSLATION_INSTRUCTIONS
+        self.TITLE_TRANSLATION_MODEL = gpt_attributes.TITLE_TRANSLATION_MODEL
+        self.TITLE_TRANSLATION_REASONING = gpt_attributes.TITLE_TRANSLATION_REASONING
+        self.TITLE_TRANSLATION_VERBOSITY = gpt_attributes.TITLE_TRANSLATION_VERBOSITY
+        self.TITLE_TRANSLATION_TEMPERATURE = gpt_attributes.TITLE_TRANSLATION_TEMPERATURE
+
+        self.GLOSSARY_EXTRACTION_INSTRUCTIONS = gpt_attributes.GLOSSARY_EXTRACTION_INSTRUCTIONS
+        self.GLOSSARY_EXTRACTION_MODEL = gpt_attributes.GLOSSARY_EXTRACTION_MODEL
+        self.GLOSSARY_EXTRACTION_REASONING = gpt_attributes.GLOSSARY_EXTRACTION_REASONING
+        self.GLOSSARY_EXTRACTION_VERBOSITY = gpt_attributes.GLOSSARY_EXTRACTION_VERBOSITY
+        self.GLOSSARY_EXTRACTION_TEMPERATURE = gpt_attributes.GLOSSARY_EXTRACTION_TEMPERATURE
         
 
         if glossary:
@@ -68,10 +66,10 @@ class PromptEngine:
         else:
             self.glossary = {}
 
-        self.title_extension = f" - PUN{self.punctuation_GPT_reasoning}" + \
-                               f" - GLSEL{self.glossary_selection_GPT_reasoning}" + \
-                               f" - TRANS{self.translation_GPT_reasoning}" + \
-                               f" - GLEXT{self.glossary_extraction_GPT_reasoning}"
+        self.title_extension = f" - PUN{self.PUNCTUATION_REASONING}" + \
+                               f" - GLSEL{self.GLOSSARY_SELECTION_REASONING}" + \
+                               f" - TRANS{self.TRANSLATION_REASONING}" + \
+                               f" - GLEXT{self.GLOSSARY_EXTRACTION_REASONING}"
 
             
     def dictate(self, file_or_text):
@@ -127,19 +125,19 @@ class PromptEngine:
         
         while response_is_uncorrupted == False and attempts < 3:
             response = self.client.responses.create(
-                    model = self.punctuation_GPT_model,
+                    model = self.PUNCTUATION_MODEL,
                     input=[
                         {
                             "role": "developer",
-                            "content": self.punctuation_instructions
+                            "content": self.PUNCTUATION_INSTRUCTIONS
                         },
                         {
                             "role": "user", 
                             "content": conversation_history
                         }],
-                    reasoning={"effort": self.punctuation_GPT_reasoning},
-                    text={"verbosity": self.punctuation_GPT_verbosity},
-                    temperature = self.punctuation_GPT_temperature
+                    reasoning={"effort": self.PUNCTUATION_REASONING},
+                    text={"verbosity": self.PUNCTUATION_VERBOSITY},
+                    temperature = self.PUNCTUATION_TEMPERATURE
                     )         
 
             punctuated_text = response.output_text
@@ -166,7 +164,7 @@ class PromptEngine:
     def select_glossary(self,
                     current_section, preceding_section = None, following_section = None):
 
-        comb_instructions = (self.glossary_selection_instructions)
+        comb_instructions = (self.GLOSSARY_SELECTION_INSTRUCTIONS)
        
         conversation_history = ""
         if preceding_section:
@@ -186,7 +184,7 @@ class PromptEngine:
         
 
         response = self.client.responses.create(
-                model = self.glossary_selection_GPT_model,
+                model = self.GLOSSARY_SELECTION_MODEL,
                 input=[
                     {
                         "role": "developer",
@@ -196,9 +194,9 @@ class PromptEngine:
                         "role": "user", 
                         "content": conversation_history
                     }],
-                reasoning={"effort": self.glossary_selection_GPT_reasoning},
-                text={"verbosity": self.glossary_selection_GPT_verbosity},
-                temperature = self.glossary_selecion_GPT_temperature
+                reasoning={"effort": self.GLOSSARY_SELECTION_REASONING},
+                text={"verbosity": self.GLOSSARY_SELECTION_VERBOSITY},
+                temperature = self.GLOSSARY_SELECTION_TEMPERATURE
                 )         
 
         selection_of_terms = response.output_text
@@ -223,7 +221,7 @@ class PromptEngine:
 
         stylized_glossary = stylize_glossary(text.segment_glossaries[i])
         
-        comb_instructions = (self.translation_instructions +
+        comb_instructions = (self.TRANSLATION_INSTRUCTIONS +
                              "\n\nUse the glossary below (if applicable):\n" +
                              stylized_glossary)
         
@@ -254,7 +252,7 @@ class PromptEngine:
         
 
         response = self.client.responses.create(
-                model = self.translation_GPT_model,
+                model = self.TRANSLATION_MODEL,
                 input=[
                     {
                         "role": "developer",
@@ -264,9 +262,9 @@ class PromptEngine:
                         "role": "user", 
                         "content": conversation_history
                     }],
-                reasoning={"effort": self.translation_GPT_reasoning},
-                text={"verbosity": self.translation_GPT_verbosity},
-                temperature = self.translation_GPT_temperature
+                reasoning={"effort": self.TRANSLATION_REASONING},
+                text={"verbosity": self.TRANSLATION_VERBOSITY},
+                temperature = self.TRANSLATION_TEMPERATURE
                 )         
 
         translation = response.output_text
@@ -309,19 +307,19 @@ class PromptEngine:
                                     following_section)
 
         response = self.client.responses.create(
-                model = self.glossary_extraction_GPT_model,
+                model = self.GLOSSARY_EXTRACTION_MODEL,
                 input=[
                     {
                         "role": "developer",
-                        "content": self.glossary_extraction_instructions
+                        "content": self.GLOSSARY_EXTRACTION_INSTRUCTIONS
                     },
                     {
                         "role": "user", 
                         "content": conversation_history
                     }],
-                reasoning={"effort": self.glossary_extraction_GPT_reasoning},
-                text={"verbosity": self.glossary_extraction_GPT_verbosity},
-                temperature = self.glossary_extraction_GPT_temperature
+                reasoning={"effort": self.GLOSSARY_EXTRACTION_REASONING},
+                text={"verbosity": self.GLOSSARY_EXTRACTION_VERBOSITY},
+                temperature = self.GLOSSARY_EXTRACTION_TEMPERATURE
                 )         
 
         glossary_text = response.output_text
@@ -340,7 +338,7 @@ class PromptEngine:
             
         stylized_glossary = stylize_glossary(temp_glossary)
         
-        comb_instructions = (self.title_translation_instructions +
+        comb_instructions = (self.TITLE_TRANSLATION_INSTRUCTIONS +
                              "\n\nUse the glossary below (if applicable):\n" +
                              stylized_glossary)
 
@@ -349,7 +347,7 @@ class PromptEngine:
         
 
         response = self.client.responses.create(
-                model = self.title_translation_GPT_model,
+                model = self.TITLE_TRANSLATION_MODEL,
                 input=[
                     {
                         "role": "developer",
@@ -359,9 +357,9 @@ class PromptEngine:
                         "role": "user", 
                         "content": title
                     }],
-                reasoning={"effort": self.title_translation_GPT_reasoning},
-                text={"verbosity": self.title_translation_GPT_verbosity},
-                temperature = self.title_translation_GPT_temperature
+                reasoning={"effort": self.TITLE_TRANSLATION_REASONING},
+                text={"verbosity": self.TITLE_TRANSLATION_VERBOSITY},
+                temperature = self.TITLE_TRANSLATION_TEMPERATURE
                 )         
 
         translated_title = response.output_text
@@ -380,19 +378,19 @@ class PromptEngine:
                                 "English translation:\n" + text.translated_title)
         
         response = self.client.responses.create(
-                model = self.glossary_extraction_GPT_model,
+                model = self.GLOSSARY_EXTRACTION_MODEL,
                 input=[
                     {
                         "role": "developer",
-                        "content": self.glossary_extraction_instructions
+                        "content": self.GLOSSARY_EXTRACTION_INSTRUCTIONS
                     },
                     {
                         "role": "user", 
                         "content": text_and_translation
                     }],
-                reasoning={"effort": self.glossary_extraction_GPT_reasoning},
-                text={"verbosity": self.glossary_extraction_GPT_verbosity},
-                temperature = self.glossary_extraction_GPT_temperature
+                reasoning={"effort": self.GLOSSARY_EXTRACTION_REASONING},
+                text={"verbosity": self.GLOSSARY_EXTRACTION_VERBOSITY},
+                temperature = self.GLOSSARY_EXTRACTION_TEMPERATURE
                 )         
 
         glossary_text = response.output_text
