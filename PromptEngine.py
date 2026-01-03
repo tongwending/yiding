@@ -22,39 +22,41 @@ import gpt_attributes
 class PromptEngine:
 
 
-    def __init__(self, glossary = None):
+    def __init__(self, glossary = None, language = None):
 
         from sk import my_sk            # Imports the personal OpenAI API Key to access GPT.
 
         client = OpenAI(api_key=my_sk)  # Reads the OpenAI API Key.
         self.client = client
-        
 
-        self.PUNCTUATION_INSTRUCTIONS = gpt_attributes.PUNCTUATION_INSTRUCTIONS
+        if not language:
+            self.language = gpt_attributes.LANGUAGE
+
+        self.PUNCTUATION_INSTRUCTIONS = gpt_attributes.instruct_punctation(language = self.language)
         self.PUNCTUATION_MODEL = gpt_attributes.PUNCTUATION_MODEL
         self.PUNCTUATION_REASONING = gpt_attributes.PUNCTUATION_REASONING
         self.PUNCTUATION_VERBOSITY = gpt_attributes.PUNCTUATION_VERBOSITY
         self.PUNCTUATION_TEMPERATURE = gpt_attributes.PUNCTUATION_TEMPERATURE
 
-        self.GLOSSARY_SELECTION_INSTRUCTIONS = gpt_attributes.GLOSSARY_SELECTION_INSTRUCTIONS
+        self.GLOSSARY_SELECTION_INSTRUCTIONS = gpt_attributes.instruct_glossary_selection(language = self.language)
         self.GLOSSARY_SELECTION_MODEL = gpt_attributes.GLOSSARY_SELECTION_MODEL
         self.GLOSSARY_SELECTION_REASONING = gpt_attributes.GLOSSARY_SELECTION_REASONING
         self.GLOSSARY_SELECTION_VERBOSITY = gpt_attributes.GLOSSARY_SELECTION_VERBOSITY
         self.GLOSSARY_SELECTION_TEMPERATURE = gpt_attributes.GLOSSARY_SELECTION_TEMPERATURE
 
-        self.TRANSLATION_INSTRUCTIONS = gpt_attributes.TRANSLATION_INSTRUCTIONS
+        self.TRANSLATION_INSTRUCTIONS = gpt_attributes.instruct_translation(language = self.language)
         self.TRANSLATION_MODEL = gpt_attributes.TRANSLATION_MODEL
         self.TRANSLATION_REASONING = gpt_attributes.TRANSLATION_REASONING
         self.TRANSLATION_VERBOSITY = gpt_attributes.TRANSLATION_VERBOSITY
         self.TRANSLATION_TEMPERATURE = gpt_attributes.TRANSLATION_TEMPERATURE
 
-        self.TITLE_TRANSLATION_INSTRUCTIONS = gpt_attributes.TITLE_TRANSLATION_INSTRUCTIONS
+        self.TITLE_TRANSLATION_INSTRUCTIONS = gpt_attributes.instruct_title_translation(language = self.language)
         self.TITLE_TRANSLATION_MODEL = gpt_attributes.TITLE_TRANSLATION_MODEL
         self.TITLE_TRANSLATION_REASONING = gpt_attributes.TITLE_TRANSLATION_REASONING
         self.TITLE_TRANSLATION_VERBOSITY = gpt_attributes.TITLE_TRANSLATION_VERBOSITY
         self.TITLE_TRANSLATION_TEMPERATURE = gpt_attributes.TITLE_TRANSLATION_TEMPERATURE
 
-        self.GLOSSARY_EXTRACTION_INSTRUCTIONS = gpt_attributes.GLOSSARY_EXTRACTION_INSTRUCTIONS
+        self.GLOSSARY_EXTRACTION_INSTRUCTIONS = gpt_attributes.instruct_glossary_extraction(language = self.language)
         self.GLOSSARY_EXTRACTION_MODEL = gpt_attributes.GLOSSARY_EXTRACTION_MODEL
         self.GLOSSARY_EXTRACTION_REASONING = gpt_attributes.GLOSSARY_EXTRACTION_REASONING
         self.GLOSSARY_EXTRACTION_VERBOSITY = gpt_attributes.GLOSSARY_EXTRACTION_VERBOSITY
