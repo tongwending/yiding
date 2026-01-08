@@ -26,8 +26,7 @@ class PromptEngine:
 
         from sk import my_sk            # Imports the personal OpenAI API Key to access GPT.
 
-        client = OpenAI(api_key=my_sk)  # Reads the OpenAI API Key.
-        self.client = client
+        self.client = OpenAI(api_key=my_sk)  # Reads the OpenAI API Key.
 
         if not language:
             self.language = gpt_attributes.LANGUAGE
