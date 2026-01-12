@@ -13,6 +13,7 @@ import pickle
 from kanripo_fetch import fetch_from_kanripo
 from glossary_dictate import *
 from PromptEngine import PromptEngine
+import text_manipulators
 
 
 
@@ -31,22 +32,19 @@ class KanripoText:
         
         self.translated_title = "Untranslated Title"
         
-
-        # Inquisition attributes:
-        self.cites = []
-        for i in range(0, len(self.page_labels)):
-            self.cites.append(f"{self.kanripo_code} {self.page_labels[i]}")
-        self.citelogs = []
-
-        
-        # Translation attributes:
         self.translation_glossary = {}
         self.punctuated_segments = []
+        self.mended_segments = []
+        self.segment_breaches = []
+        self.verse_lists = []
+        self.versified_segments = []
         self.segment_glossaries = []
         self.translated_segments = []
+        self.cross_examined_segments = []
+        self.finalized_segments = []
         self.number_of_completed_segments = 0
-        
 
+        # save the initialized instance
         self.save_as_pickle(f"{self.kanripo_code} {self.chinese_title}.pkl")
         
 
@@ -59,21 +57,47 @@ class KanripoText:
 
             print(f"\n{self.page_labels[i]}\n")
 
-            #punctuate (if not already punctuated):
-            if i == 0 and len(self.punctuated_segments) == 0:
-                self.punctuated_segments.append(self.prompt_engine.punctuate(i, self))
-            if i < len(self.segments)-1 and len(self.punctuated_segments) == i+1:
-                self.punctuated_segments.append(self.prompt_engine.punctuate(i+1, self))                           
-            
-            #create_glossaries:
+            # punctuate the first three segments (if not punctuated already):
+            for j in (0, 1, 2):     # After first iteration, only j = 2 will run.
+                if  len(self.punctuated_segments) == i+j and len(self.segments) > i+j:
+                    self.punctuated_segments.append(self.prompt_engine.punctuate(i+j, self))
+
+            # restore broken sentence on segments' borders:
+            if i == 0 and len(self.punctuated_segments)>=2: # first segment
+                a, b, c = text_manipulators.mend_last_sentence(self.punctuated_segments[i],
+                                                               self.punctuated_segments[i+1])
+                self.mended_segments.append(a)
+                self.mended_segments.append(b)
+                self.segment_breaches.append(c)
+            elif i ==0 and len(self.punctuated_segments)==1:
+                self.mended_segments.append(self.punctuated_segments[i])
+
+            if i < len(self.punctuated_segments)-2:
+                a, b, c = text_manipulators.mend_last_sentence(self.mended_segments[i+1],
+                                                               self.punctuated_segments[i+2])
+                self.mended_segments[i+1] = a
+                self.mended_segments.append(b)
+                self.segment_breaches.append(c)
+                    
+            if i == len(self.segments)-1:   # last segment
+                self.segment_breaches.append(None)
+                
+            # create lists of verses (a.k.a. numbered sentences):
+            for j in (0, 1):     # After first iteration, only j = 1 will run.
+                if  len(self.verse_lists) == i+j and len(self.mended_segments) > i+j:
+                    self.verse_lists.append(text_manipulators.break_to_verses(self.mended_segments[i+j]))
+                    # then put the verses together in a versified segment:
+                    self.versified_segments.append(text_manipulators.glue_verses(self.verse_lists[i+j]))
+                    
+            # create_glossaries:
         
             segment_glossary = {}
 
-            pre_segment =self.punctuated_segments[i-1] if i > 0 else None
-            fol_segment =self.punctuated_segments[i+1] if i < len(self.segments)-1 else None
+            pre_segment =self.mended_segments[i-1] if i > 0 else None
+            fol_segment =self.mended_segments[i+1] if i < len(self.punctuated_segments)-1 \
+                                                    else None
 
-
-            selection_text = self.prompt_engine.select_glossary(self.punctuated_segments[i],
+            selection_text = self.prompt_engine.select_glossary(self.mended_segments[i],
                                                     preceding_section = pre_segment,
                                                     following_section = fol_segment)
 
@@ -87,6 +111,20 @@ class KanripoText:
         
             self.translated_segments.append(self.prompt_engine.translate(i, self))
 
+            # cross examine:
+            
+            if i ==0:
+                self.cross_examined_segments.append(None)
+            else:
+                self.cross_examined_segments.append(self.prompt_engine.cross_examine(i,self))
+
+            # finalize translation:
+            
+            if self.cross_examined_segments[i] is None:
+                self.finalized_segments.append(self.translated_segments[i])
+            else:
+                self.finalized_segments.append(self.cross_examined_segments[i])
+            
             # extract_glossary:
         
             extracted_glossary = self.prompt_engine.extract_glossary(i, self)

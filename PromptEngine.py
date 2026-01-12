@@ -10,10 +10,8 @@
 from openai import OpenAI
 
 from glossary_dictate import *
-
-from text_manipulators import *
-
-import gpt_attributes
+import text_manipulators
+import model_attributes
 
 
 ############################################################################################
@@ -28,38 +26,46 @@ class PromptEngine:
 
         self.client = OpenAI(api_key=my_sk)  # Reads the OpenAI API Key.
 
-        if not language:
-            self.language = gpt_attributes.LANGUAGE
+        if language:
+            self.language = language
+        else:
+            self.language = model_attributes.LANGUAGE
 
-        self.PUNCTUATION_INSTRUCTIONS = gpt_attributes.instruct_punctation(language = self.language)
-        self.PUNCTUATION_MODEL = gpt_attributes.PUNCTUATION_MODEL
-        self.PUNCTUATION_REASONING = gpt_attributes.PUNCTUATION_REASONING
-        self.PUNCTUATION_VERBOSITY = gpt_attributes.PUNCTUATION_VERBOSITY
-        self.PUNCTUATION_TEMPERATURE = gpt_attributes.PUNCTUATION_TEMPERATURE
+        self.PUNCTUATION_INSTRUCTIONS = model_attributes.instruct_punctuation()
+        self.PUNCTUATION_MODEL = model_attributes.PUNCTUATION_MODEL
+        self.PUNCTUATION_REASONING = model_attributes.PUNCTUATION_REASONING
+        self.PUNCTUATION_VERBOSITY = model_attributes.PUNCTUATION_VERBOSITY
+        self.PUNCTUATION_TEMPERATURE = model_attributes.PUNCTUATION_TEMPERATURE
 
-        self.GLOSSARY_SELECTION_INSTRUCTIONS = gpt_attributes.instruct_glossary_selection(language = self.language)
-        self.GLOSSARY_SELECTION_MODEL = gpt_attributes.GLOSSARY_SELECTION_MODEL
-        self.GLOSSARY_SELECTION_REASONING = gpt_attributes.GLOSSARY_SELECTION_REASONING
-        self.GLOSSARY_SELECTION_VERBOSITY = gpt_attributes.GLOSSARY_SELECTION_VERBOSITY
-        self.GLOSSARY_SELECTION_TEMPERATURE = gpt_attributes.GLOSSARY_SELECTION_TEMPERATURE
+        self.GLOSSARY_SELECTION_INSTRUCTIONS = model_attributes.instruct_glossary_selection(language = self.language)
+        self.GLOSSARY_SELECTION_MODEL = model_attributes.GLOSSARY_SELECTION_MODEL
+        self.GLOSSARY_SELECTION_REASONING = model_attributes.GLOSSARY_SELECTION_REASONING
+        self.GLOSSARY_SELECTION_VERBOSITY = model_attributes.GLOSSARY_SELECTION_VERBOSITY
+        self.GLOSSARY_SELECTION_TEMPERATURE = model_attributes.GLOSSARY_SELECTION_TEMPERATURE
 
-        self.TRANSLATION_INSTRUCTIONS = gpt_attributes.instruct_translation(language = self.language)
-        self.TRANSLATION_MODEL = gpt_attributes.TRANSLATION_MODEL
-        self.TRANSLATION_REASONING = gpt_attributes.TRANSLATION_REASONING
-        self.TRANSLATION_VERBOSITY = gpt_attributes.TRANSLATION_VERBOSITY
-        self.TRANSLATION_TEMPERATURE = gpt_attributes.TRANSLATION_TEMPERATURE
+        self.TRANSLATION_INSTRUCTIONS = model_attributes.instruct_translation(language = self.language)
+        self.TRANSLATION_MODEL = model_attributes.TRANSLATION_MODEL
+        self.TRANSLATION_REASONING = model_attributes.TRANSLATION_REASONING
+        self.TRANSLATION_VERBOSITY = model_attributes.TRANSLATION_VERBOSITY
+        self.TRANSLATION_TEMPERATURE = model_attributes.TRANSLATION_TEMPERATURE
 
-        self.TITLE_TRANSLATION_INSTRUCTIONS = gpt_attributes.instruct_title_translation(language = self.language)
-        self.TITLE_TRANSLATION_MODEL = gpt_attributes.TITLE_TRANSLATION_MODEL
-        self.TITLE_TRANSLATION_REASONING = gpt_attributes.TITLE_TRANSLATION_REASONING
-        self.TITLE_TRANSLATION_VERBOSITY = gpt_attributes.TITLE_TRANSLATION_VERBOSITY
-        self.TITLE_TRANSLATION_TEMPERATURE = gpt_attributes.TITLE_TRANSLATION_TEMPERATURE
+        self.TITLE_TRANSLATION_INSTRUCTIONS = model_attributes.instruct_title_translation(language = self.language)
+        self.TITLE_TRANSLATION_MODEL = model_attributes.TITLE_TRANSLATION_MODEL
+        self.TITLE_TRANSLATION_REASONING = model_attributes.TITLE_TRANSLATION_REASONING
+        self.TITLE_TRANSLATION_VERBOSITY = model_attributes.TITLE_TRANSLATION_VERBOSITY
+        self.TITLE_TRANSLATION_TEMPERATURE = model_attributes.TITLE_TRANSLATION_TEMPERATURE
 
-        self.GLOSSARY_EXTRACTION_INSTRUCTIONS = gpt_attributes.instruct_glossary_extraction(language = self.language)
-        self.GLOSSARY_EXTRACTION_MODEL = gpt_attributes.GLOSSARY_EXTRACTION_MODEL
-        self.GLOSSARY_EXTRACTION_REASONING = gpt_attributes.GLOSSARY_EXTRACTION_REASONING
-        self.GLOSSARY_EXTRACTION_VERBOSITY = gpt_attributes.GLOSSARY_EXTRACTION_VERBOSITY
-        self.GLOSSARY_EXTRACTION_TEMPERATURE = gpt_attributes.GLOSSARY_EXTRACTION_TEMPERATURE
+        self.CROSS_EXAMINATION_INSTRUCTIONS = model_attributes.instruct_cross_examination(language = self.language)
+        self.CROSS_EXAMINATION_MODEL = model_attributes.CROSS_EXAMINATION_MODEL
+        self.CROSS_EXAMINATION_REASONING = model_attributes.CROSS_EXAMINATION_REASONING
+        self.CROSS_EXAMINATION_VERBOSITY = model_attributes.CROSS_EXAMINATION_VERBOSITY
+        self.CROSS_EXAMINATION_TEMPERATURE = model_attributes.CROSS_EXAMINATION_TEMPERATURE
+
+        self.GLOSSARY_EXTRACTION_INSTRUCTIONS = model_attributes.instruct_glossary_extraction(language = self.language)
+        self.GLOSSARY_EXTRACTION_MODEL = model_attributes.GLOSSARY_EXTRACTION_MODEL
+        self.GLOSSARY_EXTRACTION_REASONING = model_attributes.GLOSSARY_EXTRACTION_REASONING
+        self.GLOSSARY_EXTRACTION_VERBOSITY = model_attributes.GLOSSARY_EXTRACTION_VERBOSITY
+        self.GLOSSARY_EXTRACTION_TEMPERATURE = model_attributes.GLOSSARY_EXTRACTION_TEMPERATURE
         
 
         if glossary:
@@ -148,7 +154,7 @@ class PromptEngine:
             attempts += 1
 
             # Ensure no original Chinese character was corrupted:
-            if strip_punctuation(text.segments[i]) == strip_punctuation(punctuated_text):
+            if text_manipulators.strip_punctuation(text.segments[i]) == text_manipulators.strip_punctuation(punctuated_text):
                 response_is_uncorrupted = True
 
         if response_is_uncorrupted == False:
@@ -157,7 +163,6 @@ class PromptEngine:
         
         return punctuated_text
     
-
 
 ############################################################################################
 
@@ -214,10 +219,10 @@ class PromptEngine:
 
     def translate(self, i, text):
 
-        preceding_section = text.punctuated_segments[i-1] if i>0 else None
-        preceding_translation = text.translated_segments[i-1] if i>0 else None
-        following_section = text.punctuated_segments[i+1] \
-                                        if i<len(text.punctuated_segments)-1 else None
+        preceding_section = text.versified_segments[i-1] if i > 0 else None
+        preceding_translation = text.translated_segments[i-1] if i > 0 else None
+        following_section = text.versified_segments[i+1] \
+                                        if i < len(text.versified_segments)-1 else None
                                                             
 
         stylized_glossary = stylize_glossary(text.segment_glossaries[i])
@@ -241,7 +246,7 @@ class PromptEngine:
                                     "Preceding segment translation:\n" +
                                     preceding_translation)
 
-        conversation_history += f"\n\n\nCurrent segment:\n{text.punctuated_segments[i]}"
+        conversation_history += f"\n\n\nCurrent segment:\n{text.versified_segments[i]}"
         
         if following_section:
             conversation_history = (conversation_history + "\n\n\n" +
@@ -249,7 +254,7 @@ class PromptEngine:
                                     following_section)
             
             
-        print(stylized_glossary + "\n\n" + text.punctuated_segments[i] + "\n")
+        print(stylized_glossary + "\n\n" + text.versified_segments[i] + "\n")
         
 
         response = self.client.responses.create(
@@ -278,17 +283,63 @@ class PromptEngine:
 
 ############################################################################################
 
+    def cross_examine(self, i, text):
+
+        texts_and_translations = ("Segment A:\n" \
+                                + text.versified_segments[i-1] \
+                                + "\n\n" \
+                                + "Segment A translation:\n" \
+                                + text.translated_segments[i-1] \
+                                + "\n\n\n" \
+                                + "Segment B:\n" \
+                                + text.versified_segments[i] \
+                                + "\n\n" \
+                                + "Segment B translation:\n" \
+                                + text.translated_segments[i])
+
+        print(texts_and_translations)
+
+        response = self.client.responses.create(
+                model = self.CROSS_EXAMINATION_MODEL,
+                input=[
+                    {
+                        "role": "developer",
+                        "content": self.CROSS_EXAMINATION_INSTRUCTIONS
+                    },
+                    {
+                        "role": "user", 
+                        "content": texts_and_translations
+                    }],
+                reasoning={"effort": self.CROSS_EXAMINATION_REASONING},
+                text={"verbosity": self.CROSS_EXAMINATION_VERBOSITY},
+                temperature = self.CROSS_EXAMINATION_TEMPERATURE
+                )         
+
+        corrected_segment = response.output_text
+
+        print(corrected_segment + "\n")
+
+        return corrected_segment if corrected_segment.strip()!= "N/A" else None
+
+        
+
+
+############################################################################################
+
 
     def extract_glossary(self, i, text):
 
-        preceding_section = text.punctuated_segments[i-1] if i>0 else None
-        preceding_translation = text.translated_segments[i-1] if i>0 else None
-        following_section = text.punctuated_segments[i+1] \
-                                    if i<len(text.punctuated_segments)-1 else None
+        preceding_section = text.versified_segments[i-1] if i>0 else None
+        preceding_translation = text.finalized_segments[i-1] if i>0 else None
+        following_section = text.versified_segments[i+1] \
+                                    if i<len(text.versified_segments)-1 else None
 
         
-        text_and_translation = ("Current segment:\n" + text.punctuated_segments[i] + "\n\n" +
-                                "Current segment translation:\n" + text.translated_segments[i])
+        text_and_translation = ("Current segment:\n" \
+                                + text.versified_segments[i] \
+                                + "\n\n" \
+                                + "Current segment translation:\n" \
+                                + text.finalized_segments[i])
 
 
         conversation_history = ""
