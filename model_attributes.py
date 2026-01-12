@@ -151,17 +151,17 @@ def instruct_glossary_extraction(language = LANGUAGE):
 For context and continuation, the preceding and following segments will be provided. Select terms only from the "Current segment" (including terms that might be separated from the segment divide).
 
 In your answer you should include only the list following the excact format below:
-Chinese term (accented Pinyin) = {LANGUAGE} translation
+Chinese term (accented Pinyin) = {language} translation
 
-Do not add your own translation of the term (use only what is found in the corresponding {LANGUAGE} translation).
-If the text translates multiple instances of a Chinese term differently, add {LANGUAGE} translations using commas to separate them.
+Do not add your own translation of the term (use only what is found in the corresponding {language} translation).
+If the text translates multiple instances of a Chinese term differently, add {language} translations using commas to separate them.
 Always separate multiple meanings with comma (not slash).
 Do not give translation variants. Only what is in the corresponding text.
 Do not add anything else in the response; give only the list.
 If the user only gives an empty text or a single underscore character, respond back with a single underscore character.
 
 Stylistic Guidelines:
-• Except if a term is inherently plural, use {LANGUAGE} singular form even if in the translation it is in plural.
+• Except if a term is inherently plural, use {language} singular form even if in the translation it is in plural.
 • Do not select whole phrases, except in the case of idiomatic expresions, in which case give both the phrase and the terms it is comprised of.
 • If there is a title, select the title as a whole as well as each of its terms individually.
 • Make sure you separate the pinyin syllables (but not the Chinese characters).
