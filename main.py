@@ -24,7 +24,8 @@ import pickle
 
 # Cauldron modules:
 from KanripoText import KanripoText
-from PromptEngine import PromptEngine
+from PromptGateway import PromptGateway
+from WorkflowOrchestrator import WorkflowOrchestrator
 from glossary_dictate import *
 
 
@@ -55,19 +56,20 @@ def Translate_Kanripo_Corpus(kanripo_corpus_code,
 ############################################################################################
 
 
-def Translate_From_Kanripo(kanripo_code, instructions = None, glossary = None):
+def Translate_From_Kanripo(kanripo_code,
+                           language = None,
+                           glossary = None):
 
     text = KanripoText(kanripo_code)
 
-    if instructions:
-        text.prompt_engine = instructions
+    gate = PromptGateway(language = language)
 
-    if glossary:
-        update_glossary(text.prompt_engine.glossary, load_glossary(glossary))
-        
-    text.resume_translation()
+    orchestrator = WorkflowOrchestrator(text, gate,
+                                glossary = load_glossary(glossary) if glossary else None)
 
-    text.translation_to_docx()
+    orchestrator.resume_translation()
+    
+    orchestrator.text.translation_to_docx()
 
     herald_of_the_end()
 
@@ -75,23 +77,16 @@ def Translate_From_Kanripo(kanripo_code, instructions = None, glossary = None):
 ############################################################################################
 
 
-def Continue_Translation(filename, instructions = None, glossary = None):
+def Continue_Translation(filename):
 
-    text = load_pickle(filename)
+    orchestrator = load_pickle(filename)
 
-    if instructions:
-        text.prompt_engine = instructions
+    orchestrator.resume_translation()
 
-    if glossary:
-        update_glossary(text.prompt_engine.glossary, load_glossary(glossary))
-
-    text.resume_translation()
-
-    text.translation_to_docx()
+    orchestrator.text.translation_to_docx()
     
     herald_of_the_end()
 
-    
 
 ############################################################################################
 # I/O

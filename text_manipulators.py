@@ -70,9 +70,9 @@ def mend_last_sentence(segment_a, segment_b):
     new_segment_b = segment_b[first_punctuation.end():].lstrip() \
                     if first_punctuation else segment_b
     
-    leftover_halfverse = segment_b[:first_punctuation.end()] if first_punctuation else None
+    moved_halfverse = segment_b[:first_punctuation.end()] if first_punctuation else None
     
-    return new_segment_a, new_segment_b, leftover_halfverse
+    return new_segment_a, new_segment_b, moved_halfverse
 
 
 ############################################################################################

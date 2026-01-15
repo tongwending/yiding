@@ -1,9 +1,3 @@
-
-
-
-
-
-
 ############################################################################################
 ############################################################################################
 ############################################################################################
@@ -96,4 +90,18 @@ def destylize_glossary(glossary_text):
     # glossary_proper = {chinese:[pinyin, {set_of_translations}]}
     return glossary_proper
 
+
+############################################################################################
+
+
+def glossary_to_csv(glossary, filename): #  not used now but might be handy later
+    with open(filename, "w", encoding="utf-8") as file:
+        for key, value in self.glossary.items():
+            file.write(f"{key},{value[0]}")
+            for translation in value[1]:
+                file.write(f",{translation}")
+            file.write("\n")
+
+
+############################################################################################
 
