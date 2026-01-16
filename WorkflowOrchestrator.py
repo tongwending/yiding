@@ -138,11 +138,14 @@ class WorkflowOrchestrator:
 
                 prompt = self.build_cross_examination_prompt(i, j)
 
-                corrected_segment = self.gate.cross_examinator.invoke(prompt)
+                inconsistencies_exist = self.gate.cross_examinator.invoke(prompt)
         
-                if corrected_segment.strip() != "N/A":
-                    self.text.translated_segments[i] = corrected_segment
+                if inconsistencies_exist == True:
+                    self.text.translated_segments[i] = \
+                                                    self.gate.cross_corrector.invoke(prompt)
                     print(f"\nCorrected segment:\n{self.text.translated_segments[i]}")
+                else:
+                    print(f"No inconsistencies with segment {j}.")
                         
             # extract_glossary:
         

@@ -7,6 +7,24 @@
 ############################################################################################
 
 
+import json
+
+
+############################################################################################
+
+
+BOOLEAN_SCHEMA = {
+    "type": "json_schema",
+    "name": "bool_only",
+    "strict": True,
+    "schema": {
+            "type": "object",
+            "properties": {"b": {"type": "boolean"}},
+            "required": ["b"],
+            "additionalProperties": False}}
+
+
+
 ############################################################################################
 
 
@@ -18,7 +36,8 @@ class GptInvoker:
                  model,
                  reasoning,
                  verbosity,
-                 temperature):
+                 temperature,
+                 boolean_response = False):
 
         self.client = client
 
@@ -27,6 +46,7 @@ class GptInvoker:
         self.reasoning = reasoning
         self.verbosity = verbosity
         self.temperature = temperature
+        self.boolean_response = boolean_response
 
         self.settings =  f"- model: {self.model}\n"\
                        + f"- reasoning: {self.reasoning}\n"\
@@ -59,11 +79,16 @@ class GptInvoker:
                         "content": prompt
                     }],
                 reasoning={"effort": reasoning},
-                text={"verbosity": verbosity},
+                text={"verbosity": verbosity,
+                      **({"format": BOOLEAN_SCHEMA} if self.boolean_response else {} )
+                      },
                 temperature = temperature
                 )
 
-        return response.output_text
+        if self.boolean_response:
+            return json.loads(response.output_text)["b"]    # boolean True/False
+        else:        
+            return response.output_text
             
 
 ############################################################################################

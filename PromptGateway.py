@@ -53,7 +53,15 @@ class PromptGateway:
                     model_settings.CROSS_EXAMINATION_MODEL,
                     model_settings.CROSS_EXAMINATION_REASONING,
                     model_settings.CROSS_EXAMINATION_VERBOSITY,
-                    model_settings.CROSS_EXAMINATION_TEMPERATURE)
+                    model_settings.CROSS_EXAMINATION_TEMPERATURE,
+                    boolean_response = True)
+
+        self.cross_corrector = GptInvoker(self.client,
+                    model_settings.instruct_cross_correction(language = self.language),
+                    model_settings.CROSS_CORRECTION_MODEL,
+                    model_settings.CROSS_CORRECTION_REASONING,
+                    model_settings.CROSS_CORRECTION_VERBOSITY,
+                    model_settings.CROSS_CORRECTION_TEMPERATURE)
 
         self.glossary_extractor = GptInvoker(self.client,
                     model_settings.instruct_glossary_extraction(language = self.language),
@@ -74,6 +82,7 @@ class PromptGateway:
                       + f"glossary selection:\n {self.glossary_selector.settings}"\
                       + f"translation:\n {self.translator.settings}"\
                       + f"cross examination:\n {self.cross_examinator.settings}"\
+                      + f"cross correction:\n {self.cross_corrector.settings}"\
                       + f"glossary extraction:\n {self.glossary_extractor.settings}"\
                       + f"title_translation:\n {self.title_translator.settings}"
 

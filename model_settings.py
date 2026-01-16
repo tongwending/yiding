@@ -37,6 +37,11 @@ CROSS_EXAMINATION_REASONING = "none"
 CROSS_EXAMINATION_VERBOSITY = "low"
 CROSS_EXAMINATION_TEMPERATURE = 0
 
+CROSS_CORRECTION_MODEL = "gpt-5.1"
+CROSS_CORRECTION_REASONING = "none"
+CROSS_CORRECTION_VERBOSITY = "low"
+CROSS_CORRECTION_TEMPERATURE = 0
+
 GLOSSARY_EXTRACTION_MODEL = "gpt-5.1"
 GLOSSARY_EXTRACTION_REASONING = "none"
 GLOSSARY_EXTRACTION_VERBOSITY = "medium"
@@ -96,12 +101,16 @@ Do not add anything else in the response; give only the translation.
 If the user only gives an empty text or a single underscore character, respond back with a single underscore character.
 
 Stylistic Guidelines:
-• The translation should be elegant.
+{TRANSLATION_GUIDELINES}
+"""
+
+TRANSLATION_GUIDELINES = \
+"""• The translation should be elegant.
 • If the text is clearly in verses (for example, as in a poem or song) keep the structure.
 • Keep the parataxis of the Chinese text using the equivalent of  ；(分號 fēnhào).
 • If titles of other scriptures are referenced use ‘ ’.
 • If the text is quoting something, use “ ”.
-• If there is title, header or tail title, make sure an empty line precedes it and add a double asterisk (**) before and after the title, using the following format: **TITLE**
+• If there is title, header or tail title, make sure an empty line precedes it and add a double asterisk (**) before and after the title, using the following format: **Title**
 • Use appropriate capitalization in titles or headers
 • Do not add empty lines between paragraphs except if there is a clear strong distinction in the text's structure, such as the introduction of a new header or a lengthy quote.
 • Start paragraphs with indentation, except in the case of introducing structured texts (such as verses of a song) or continuing directly from the preceding segment.
@@ -120,32 +129,62 @@ Stylistic Guidelines:
 • Do not use a period at the end.
 """
 
+
 def instruct_cross_examination(language = LANGUAGE):
     return f"""You will be given two different Chinese segments (segment A and segment B) and their corresponding {language} translations.
-Check if translation B is inconsistent with translation A.
+Check if translation B is inconsistent with translation A according to the definition of inconsistencies below:
+{INCONSISTENCIES}
 
-Inconsistencies include:
-• terms translated unjustifiably differently.
+Return ONLY a valid JSON object with exactly one key: "answer".
+"answer" must be a boolean (true or false). Do not include any other keys, text, markdown, or code fences.
+If there are inconsistencies, respond with true.
+If there are no inconsistencies, respond with false.
+
+Further Guidelines:
+Focus only on translation or rendering inconsistences, not style.
+Don't bother with minor incosistencies such as an article or pronoun here and there.
+Don't bother with alternative translations of the Chinese; focus
+Don't compare each translation with their conresponding Chinese text; compare the two translation and how they handled same terms, idioms or phrases.
+They two Chinese segments are different, so don't flag them as inconsistent for not being identical.
+They is a high possibility that there are no inconsistences; don't flag as inconsistent without a reason.
+"""
+
+INCONSISTENCIES = \
+"""• terms translated unjustifiably differently.
 • idioms translated differently.
 • phrases translated differently.
 • verbatim sentences or quotes translated differently.
 • grammatical number of the same term rendered differently.
+"""
 
-If there are no inconsistencies, respond only with the following:
-N/A
 
-If there are inconsistencies, rewrite segment B correcting the inconsistencies.
+def instruct_cross_correction(language = LANGUAGE):
+    return f"""You will be given two Chinese segments and their corresponding {language} translation.
+The translation of segment B has one or more inconsistences when compared to translation of segment A.
+Identify them and to make minimal changes to segment B in order to smooth them out.
 
-If rewriting segment B:
+Inconsistences are defined as:
+{INCONSISTENCIES}
+
+Focus only on translation or rendering inconsistences, not style.
+Don't bother with minor incosistencies such as an article or pronoun here and there.
+Don't compare each translation with their conresponding Chinese text; compare the two translation and how they handled same terms, idioms or phrases.
+Respond only with the minimally corrected translation of segment B.
+Don't add anything else in the response.
+
+When correcting, adhere to the following guidelines:
 • Make minimal changes that will correct the inconsistencies. 
-• Change only the inconsistencies; don't change anything else.
+• Change only the inconsistencies; don't change anything else. There is high possibility that there will be a very small number of inconsistent sentences.
 • Make minor changes in the rest of the text only if it is necessary for the new corrections to work.
 • Keep punctuation and indentation as is.
 • Do not add anything else in the response; give only the corrected translation.
 • If the user only gives an empty text or a single underscore character, respond back with a single underscore character.
+
+The translation follows the certain stylistic guidelines. Adhere to them. They are the following:
+{TRANSLATION_GUIDELINES}
 """
 
-
+    
 def instruct_glossary_extraction(language = LANGUAGE):
     return f"""The user will give you a segment of Chinese text to create a list of the key terms of the Chinese text and how they are translated by the provided translation.
 For context and continuation, the preceding and following segments will be provided. Select terms only from the "Current segment" (including terms that might be separated from the segment divide).
