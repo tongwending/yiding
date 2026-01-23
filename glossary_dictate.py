@@ -8,14 +8,17 @@
 
 
 def load_glossary(file_or_text):
+    
+    glossary = {}
+
+    if file_or_text == None:
+        return glossary
 
     if file_or_text.lower().endswith(".txt") or file_or_text.lower().endswith(".csv"):
         with open(file_or_text, 'r', encoding='utf-8') as f:
             list_of_rows = f.readlines()
     else:
         list_of_rows = file_or_text.splitlines()
-
-    glossary = {}
 
     for row in list_of_rows:
         words = [x.strip() for x in row.split(",")]

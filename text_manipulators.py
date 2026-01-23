@@ -14,6 +14,7 @@ import re
 
 ############################################################################################
 
+SEGMENTOR = "<break>"
 
 ENDERS = "。？！.!?)*" # ** is coded for titles and headers.
 
@@ -41,6 +42,9 @@ non_characters.update(chr(cp) for cp in range(0x2000, 0x206F + 1))
 non_characters.update(chr(cp) for cp in range(0x3000, 0x303F + 1))
 # Halfwidth and Fullwidth Forms: U+FF01–U+FF5E (fullwidth ASCII & punctuation)
 non_characters.update(chr(cp) for cp in range(0xFF01, 0xFF5E + 1))
+# All Latin letters (ASCII) a-zA-Z
+non_characters.update(string.ascii_letters)
+# Combine in a table:
 _STRIP_TABLE = str.maketrans('', '', ''.join(non_characters))
 
 
@@ -55,65 +59,51 @@ def strip_punctuation(text: str) -> str:
 ############################################################################################
 
 
-def mend_last_sentence(segment_a, segment_b):
-    
-    stripped_a = segment_a.rstrip()
+def segmentate(text):
 
-    if not stripped_a or re.search(punctuation_end, stripped_a):
-        return segment_a, segment_b, None
-    
-    first_punctuation = re.search(punctuation, segment_b)
-    
-    new_segment_a = stripped_a + segment_b[:first_punctuation.end()] \
-                    if first_punctuation else segment_a
+    punctuated_segments = []
+    leftover = ""
 
-    new_segment_b = segment_b[first_punctuation.end():].lstrip() \
-                    if first_punctuation else segment_b
-    
-    moved_halfverse = segment_b[:first_punctuation.end()] if first_punctuation else None
-    
-    return new_segment_a, new_segment_b, moved_halfverse
-
-
-############################################################################################
-
-
-def break_to_verses(segment):
-
-    list_of_verses = []
-
-    no_punctuation_left = False    
-    while no_punctuation_left == False:
+    no_segmentor_left = False    
+    while no_segmentor_left == False:
         
-        next_punctuation = re.search(punctuation, segment)
+        next_segmentor = re.search(SEGMENTOR, text)
 
-        if not next_punctuation:
-            no_punctuation_left = True
-
+        if not next_segmentor:
+            no_segmentor_left = True
         else:
-            list_of_verses.append(segment[:next_punctuation.end()])
-            segment = segment[next_punctuation.end():]
+            punctuated_segments.append(text[:next_segmentor.start()])
+            text = text[next_segmentor.end():]
 
-    # check for leftovers
-    if segment.rstrip():
-        list_of_verses.append(segment)
+    if text.strip():
+        leftover = text
+    elif len(punctuated_segments) > 0:
+        leftover = punctuated_segments.pop()
 
-
-    return list_of_verses
-
+    return punctuated_segments, leftover
+        
 
 ############################################################################################
 
 
-def glue_verses(list_of_verses):
+def chop_from_working_segment(punctuated_segments, working_segment):
 
-    versified_segment = ""
+    chop = ""
 
-    for i in range(0, len(list_of_verses)):
+    for x in punctuated_segments:
+        chop += x
 
-        versified_segment = f"{versified_segment}[{i+1}]{list_of_verses[i]}"
+    chop = strip_punctuation(chop)
+    
+    start = 0
+    
+    for x in chop:
+        for i in range(start, len(working_segment)):
+            if working_segment[i] == x:
+                start = i+1
+                break
 
-    return versified_segment
+    return working_segment[start:]
 
 
 ############################################################################################
