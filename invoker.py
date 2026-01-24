@@ -1,0 +1,134 @@
+############################################################################################
+############################################################################################
+############################################################################################
+### GPT INVOKER CLASS
+############################################################################################
+############################################################################################
+############################################################################################
+
+
+from google.genai import types
+
+import json
+
+
+############################################################################################
+
+
+GPT_BOOLEAN_SCHEMA = {
+    "type": "json_schema",
+    "name": "bool_only",
+    "strict": True,
+    "schema": {
+            "type": "object",
+            "properties": {"b": {"type": "boolean"}},
+            "required": ["b"],
+            "additionalProperties": False}}
+
+GEMINI_BOOLEAN_SCHEMA = {
+    "type": "object",
+    "properties": {"b": {"type": "boolean"}},
+    "required": ["b"],
+    "additionalProperties": False}
+
+_GEMINI_THINKING_LEVEL = {
+    "high": types.ThinkingLevel.HIGH,
+    "medium": types.ThinkingLevel.MEDIUM,
+    "low": types.ThinkingLevel.LOW,
+    "none": types.ThinkingLevel.MINIMAL,
+    "minimal": types.ThinkingLevel.MINIMAL,}
+
+
+############################################################################################
+
+
+class Invoker:
+
+
+    def __init__(self, client,
+                 instructions,
+                 model,
+                 reasoning,
+                 verbosity,
+                 temperature,
+                 boolean_response = False):
+
+        self.client = client
+
+        self.instructions = instructions
+        self.model = model
+        self.verbosity = verbosity
+        self.temperature = temperature
+        self.boolean_response = boolean_response
+
+        if self.model[0:3] == "gpt":
+            self.reasoning = reasoning
+        elif self.model[0:6] == "gemini":
+            self.reasoning = _GEMINI_THINKING_LEVEL.get((reasoning or "none").lower(),
+                                                         types.ThinkingLevel.MINIMAL)
+            
+        self.settings =  f"- model: {self.model}\n"\
+                       + f"- reasoning: {self.reasoning}\n"\
+                       + f"- verbosity: {self.verbosity}\n"\
+                       + f"- temperature: {self.temperature}"
+
+
+    def invoke(self, prompt,
+               instructions = None):
+
+        instructions = instructions if instructions else self.instructions
+
+        if self.model[0:3] == "gpt":
+            response = self.client.responses.create(
+                    model = self.model,
+                    instructions = instructions,
+                    input = prompt,
+                    reasoning = {"effort": self.reasoning},
+                    text = {"verbosity": self.verbosity,
+                         **({"format": GPT_BOOLEAN_SCHEMA} if self.boolean_response else {})
+                         },
+                    temperature = self.temperature
+                    )
+            if self.boolean_response:
+                return json.loads(response.output_text)["b"]    # boolean True/False
+            else:        
+                return response.output_text
+            
+        elif self.model[0:6] == "gemini":
+            response = self.client.models.generate_content(
+                model = self.model,
+                contents = prompt,
+                config = types.GenerateContentConfig(
+                    system_instruction = instructions,
+                    thinking_config = types.ThinkingConfig(thinking_level = self.reasoning),
+                    temperature = self.temperature,
+                    **({"response_mime_type": "application/json",
+                        "response_json_schema": GEMINI_BOOLEAN_SCHEMA}
+                       if self.boolean_response else {})
+                )
+            )
+            if self.boolean_response:
+                return json.loads(response.text)["b"]    # boolean True/False
+            else:        
+                return response.text
+            
+
+############################################################################################
+
+
+    def __getstate__(self):
+        """Return picklable state (drop the LLM client)."""
+        state = self.__dict__.copy()
+        # client is not picklable
+        state['client'] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = None  # PromptGateway will re-bind client
+
+    def bind_client(self, client): # PromptGateway uses this to re-bind client
+        self.client = client
+        
+        
+############################################################################################
