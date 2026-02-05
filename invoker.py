@@ -1,19 +1,12 @@
-############################################################################################
-############################################################################################
-############################################################################################
-### GPT INVOKER CLASS
-############################################################################################
-############################################################################################
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
+# invoker
+# ------------------------------------------------------------------------------------------
 
 from google.genai import types
 
 import json
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 GPT_BOOLEAN_SCHEMA = {
     "type": "json_schema",
@@ -38,12 +31,9 @@ _GEMINI_THINKING_LEVEL = {
     "none": types.ThinkingLevel.MINIMAL,
     "minimal": types.ThinkingLevel.MINIMAL,}
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 class Invoker:
-
 
     def __init__(self, client,
                  instructions,
@@ -66,12 +56,8 @@ class Invoker:
         elif self.model[0:6] == "gemini":
             self.reasoning = _GEMINI_THINKING_LEVEL.get((reasoning or "none").lower(),
                                                          types.ThinkingLevel.MINIMAL)
-            
-        self.settings =  f"- model: {self.model}\n"\
-                       + f"- reasoning: {self.reasoning}\n"\
-                       + f"- verbosity: {self.verbosity}\n"\
-                       + f"- temperature: {self.temperature}"
-
+        else:
+            raise ValueError("Error: Unknown LLM model.")
 
     def invoke(self, prompt,
                instructions = None):
@@ -104,17 +90,14 @@ class Invoker:
                     temperature = self.temperature,
                     **({"response_mime_type": "application/json",
                         "response_json_schema": GEMINI_BOOLEAN_SCHEMA}
-                       if self.boolean_response else {})
+                       if self.boolean_response else {}))
                 )
-            )
             if self.boolean_response:
                 return json.loads(response.text)["b"]    # boolean True/False
             else:        
                 return response.text
             
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
     def __getstate__(self):
         """Return picklable state (drop the LLM client)."""
@@ -130,5 +113,4 @@ class Invoker:
     def bind_client(self, client): # PromptGateway uses this to re-bind client
         self.client = client
         
-        
-############################################################################################
+# ------------------------------------------------------------------------------------------

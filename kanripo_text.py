@@ -1,43 +1,45 @@
-############################################################################################
-############################################################################################
-############################################################################################
-### THE KANRIPO TEXT CLASS
-############################################################################################
-############################################################################################
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
+# kanripo_text
+# ------------------------------------------------------------------------------------------
 
 import kanripo
 
-from segmented_text import SegmentedText
+from .segmented_text import SegmentedText
+from . import text_manipulators
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 PARSING_ERROR_MESSAGE = "nonexistent or unknown Kanripo documentation"
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 class KanripoText(SegmentedText):
     
 
-    def __init__(self, kanripo_code: str, translated_title = None):
+    def __init__(self, kanripo_code: str, translated_title = None, glosses_on = True):
 
         super().__init__(segments = None,
                          original_title = None,
                          translated_title = translated_title)
 
         self.kanripo_code = kanripo_code
+        self.glosses_on = glosses_on
 
-        self.fetch_from_kanripo() # fills title, properties, segments, and page_labels
-        
+        self.fetch_from_kanripo() # fills title, properties, segments, page_labels
+
+        for x in self.segments:
+            self.page_lines.append(x.count("\n"))
+
+        if not self.glosses_on:
+            for i in range(0, len(self.segments)):
+                segment, glosslist = text_manipulators.pop_glosses(self.segments[i])
+                self.segments[i] = segment
+                self.glosses.append(glosslist)
                                     
 
     def full_title(self): # needs reworkings
-        fulltitle = f"{self.kanripo_code} - {self.original_title} - {self.translated_title}"
+        fulltitle = (f"{self.kanripo_code} - {self.original_title}"\
+                     + (f"- {self.translated_title}" if self.translated_title else ""))
         return fulltitle
 
 
@@ -46,34 +48,24 @@ class KanripoText(SegmentedText):
         raw_juan = fetch_segments(self.kanripo_code)
 
         if not raw_juan:
-            
             raise ValueError(f"Error: Code {self.kanripo_code} is {PARSING_ERROR_MESSAGE}.")
 
         else:
-            
             self.original_title = detect_title(raw_juan[0])
-
             self.properties = detect_properties(raw_juan[0])
 
             for i in range(0, len(raw_juan)):
-
                 sectioned_juan, page = slice_into_sections(raw_juan[i])
                 if sectioned_juan and page:
                     for j in range(0, len(sectioned_juan)):
                         self.segments.append(sectioned_juan[j])
                         self.page_labels.append(page[j])
 
-
-
-############################################################################################
-# HELPERS
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def fetch_segments(kanripo_code):
 
     list_of_juan = []
-
     KANRIPO_ERROR = "404: Not Found"
 
     i = 0
@@ -108,9 +100,7 @@ def fetch_segments(kanripo_code):
         
     return list_of_juan
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def slice_into_sections(text):
 
@@ -140,44 +130,34 @@ def slice_into_sections(text):
         page_labels.append(detect_page(first_line))
         sections[i] = rest_of_text
                 
-                
     return sections, page_labels
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def detect_title(text):
 
     title = "Unknown Title"
 
     for line in text.splitlines():
-
         if line.startswith("#+TITLE: "):
             title = line[len("#+TITLE: "):]
-            
             break
 
     return title
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def detect_properties(text):
 
     properties = []
 
     for line in text.splitlines():
-
         if line.startswith("#+PROPERTY: "):
             properties.append(line[len("#+PROPERTY: "):].strip())
 
     return properties
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def detect_page(line):
 
@@ -186,7 +166,6 @@ def detect_page(line):
     if len(line)>24:
 
         try:
-        
             segment = int(line[17:20])  # won't work with unknow Kanripo documentation
             segment_format = f"{segment}." if segment > 0 else ""
             page = int(line[21:24])     # won't work with unknow Kanripo documentation
@@ -195,9 +174,7 @@ def detect_page(line):
             raise ValueError(f"Error: Label is {PARSING_ERROR_MESSAGE}.")
 
         final_form = f"{segment_format}{page}{side}"
-    
 
     return final_form
 
-    
-############################################################################################
+# ------------------------------------------------------------------------------------------

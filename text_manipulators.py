@@ -1,34 +1,27 @@
-############################################################################################
-############################################################################################
-############################################################################################
-# TEXT MANIPULATORS
-############################################################################################
-############################################################################################
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
+# text_manipulators
+# ------------------------------------------------------------------------------------------
 
 import string
-
 import re
 
-
-############################################################################################
+# ------------------------------------------------------------------------------------------
 
 SEGMENTOR = "<break>"
 
 ENDERS = "。？！.!?)*" # ** is coded for titles and headers.
-
 CLOSERS = '"”’」』】）》）〉》〕］｝」』｣)}›»*'
-
 punctuation = re.compile(rf"[{re.escape(ENDERS)}][{re.escape(CLOSERS)}]*") # [..]* is regex.
-
 punctuation_end = re.compile(rf"[{re.escape(ENDERS)}][{re.escape(CLOSERS)}]*$")
+
+_PARENTHESIS = re.compile(r"\(([^()]*)\)", flags = re.S) # last part is for multiple lines
 
 non_characters = set()
 # ASCII punctuation and space
 non_characters.update(string.punctuation)    # !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
 non_characters.add(' ')                      # normal space
 non_characters.update(string.digits)         # numbers
+non_characters.update(string.ascii_letters)  # Latin letters (A–Z, a–z)
 # Common special spaces
 non_characters.add('\u00A0')  # NO-BREAK SPACE
 non_characters.add('\u3000')  # IDEOGRAPHIC SPACE (full-width space)
@@ -42,22 +35,18 @@ non_characters.update(chr(cp) for cp in range(0x2000, 0x206F + 1))
 non_characters.update(chr(cp) for cp in range(0x3000, 0x303F + 1))
 # Halfwidth and Fullwidth Forms: U+FF01–U+FF5E (fullwidth ASCII & punctuation)
 non_characters.update(chr(cp) for cp in range(0xFF01, 0xFF5E + 1))
-# All Latin letters (ASCII) a-zA-Z
-non_characters.update(string.ascii_letters)
+# Remove the character parenthesis
+non_characters.difference_update({'(', ')'})
 # Combine in a table:
 _STRIP_TABLE = str.maketrans('', '', ''.join(non_characters))
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def strip_punctuation(text: str) -> str:
 
     return text.translate(_STRIP_TABLE)
 
-
-############################################################################################
-
+# ------------------------------------------------------------------------------------------
 
 def segmentate(text):
 
@@ -82,28 +71,93 @@ def segmentate(text):
 
     return punctuated_segments, leftover
         
+# ------------------------------------------------------------------------------------------
 
-############################################################################################
+def chop_from_working_segment(chop, working_segment, labels):
 
+    # labels[n] = [page: str, first_line: int, last_line: int]
 
-def chop_from_working_segment(punctuated_segments, working_segment):
+    LABEL_ERROR = "Error: Page'n'lines labels misaligned."
 
-    chop = ""
+    while working_segment.startswith('\n'):
+        if not labels:
+            raise ValueError(LABEL_ERROR)
+        else:         
+            working_segment = working_segment[1:]
+            labels[0][1] += 1
+            if labels[0][1] > labels[0][2]:
+                labels.pop(0)
 
-    for x in punctuated_segments:
-        chop += x
-
+    if not labels:
+        raise ValueError(LABEL_ERROR)
+    
+    label_start = [labels[0][0], labels[0][1]]
+    label_finish = ["", 0]
+    end = 0
     chop = strip_punctuation(chop)
     
-    start = 0
-    
+    if not chop:
+        raise ValueError("Error: Empty punctuated segment.")
+        
     for x in chop:
-        for i in range(start, len(working_segment)):
+        if x not in working_segment[end:]:
+            raise ValueError(f"Error: Missing character: {x}")
+        for i in range(end, len(working_segment)):
             if working_segment[i] == x:
-                start = i+1
+                end = i+1
                 break
 
-    return working_segment[start:]
+    razorcut = False
+    if end < len(working_segment):
+        if working_segment[end] == "\n":
+            end += 1
+            razorcut = True
 
+    lines_chopped = working_segment[:end].count("\n") + (0 if razorcut else 1)
+    
+    while lines_chopped > 0:
+        if not labels:
+            raise ValueError(LABEL_ERROR)
+        else:
+            if lines_chopped <= labels[0][2]-labels[0][1]+1:
+                label_finish = [labels[0][0], labels[0][1]+lines_chopped-1]
+                labels[0][1] += lines_chopped if razorcut else (lines_chopped-1)
+                if labels[0][1] > labels[0][2]:
+                    labels.pop(0)
+                lines_chopped = 0
+            else:
+                lines_chopped -= labels[0][2]-labels[0][1]+1
+                labels.pop(0)
+    
+    label = (f"{label_start[0]}.{label_start[1]}"
+             + ("–" if label_start != label_finish else "")
+             + (f"{label_finish[0]}." if label_finish[0] != label_start[0] else "")
+             + (f"{label_finish[1]}" if label_start != label_finish else ""))
+    
+    return working_segment[:end], working_segment[end:], label, labels
 
-############################################################################################
+# ------------------------------------------------------------------------------------------
+
+def clean(text):
+    if not text:
+        return text
+    text = text.replace("/", "")
+    text = text.replace(")\n(", "\n")
+    text = text.replace(")\n　(", "\n")
+    return text
+
+# ------------------------------------------------------------------------------------------
+
+def pop_glosses(segment, marker = ""):
+
+    glosses = []
+
+    def _insert_marker(m: re.Match):
+        glosses.append(m.group(1)) # content without parentheses        
+        return marker
+
+    stripped_segment = _PARENTHESIS.sub(_insert_marker, segment)
+
+    return stripped_segment, glosses
+
+# ------------------------------------------------------------------------------------------
