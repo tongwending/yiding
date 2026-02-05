@@ -24,9 +24,11 @@ class WorkflowOrchestrator:
         self.glossary = (load_glossary(self.gate.settings.GLOSSARY_FILE)
                          if self.gate.settings.GLOSSARY_FILE
                          else {})
-        
-        self.text.prompting_settings = self.gate.prompting_settings
-        
+
+        if not self.text.prompting_settings['punctuation']:
+            self.text.prompting_settings['punctuation'] = self.gate.prompting_settings['punctuation']
+        if not self.text.prompting_settings['translation']:
+            self.text.prompting_settings['translation'] = self.gate.prompting_settings['translation']
 
     def save_as_pickle(self, filename = None):
         filename = filename if filename else f"{self.text.full_title()}.pkl"
@@ -37,26 +39,25 @@ class WorkflowOrchestrator:
 
     def resume_punctuation(self):
 
+        if self.text.working_segment["i"] == 0 and len(self.text.segments) > 1:
+            self.text.working_segment["text"] = self.text.segments[0]
+            self.text.working_segment["labels"].append(
+                        [self.text.page_labels[0], 1, self.text.page_lines[0]])
+            self.text.working_segment["i"] += 1
+            print(f"\n{self.text.page_labels[0]}\n")
+            
+
         for i in range(self.text.working_segment["i"],
                        len(self.text.segments),
                        self.gate.settings.FASCIMILE_SPAN):
-
-            if i + self.gate.settings.FASCIMILE_SPAN <= len(self.text.segments):
-                cap = self.gate.settings.FASCIMILE_SPAN
-            else:
-                cap = len(self.text.segments) - i
-
-            if i == 0:
-                self.text.working_segment["text"] = self.text.segments[0]
-                self.text.working_segment["labels"].append([self.text.page_labels[0],
-                                                            1,
-                                                            self.text.page_lines[0]])
-            for j in range(0, cap):
-                self.text.working_segment["text"] += self.text.segments[i+j+1] if i+j+1 < len(self.text.segments) else ""
-                self.text.working_segment["text"] = text_manipulators.clean(self.text.working_segment["text"])
-                self.text.working_segment["labels"].append([self.text.page_labels[i+j],
-                                                            1,
-                                                            self.text.page_lines[i+j]])
+                
+            for j in range(0, self.gate.settings.FASCIMILE_SPAN):
+                if i+j < len(self.text.segments):
+                    self.text.working_segment["text"] += self.text.segments[i+j]
+                    self.text.working_segment["text"] = text_manipulators.clean(self.text.working_segment["text"])
+                    self.text.working_segment["labels"].append(
+                                [self.text.page_labels[i+j], 1,self.text.page_lines[i+j]])
+                    print(f"\n{self.text.page_labels[i+j]}\n")
 
             if len(self.text.working_segment["text"]) > self.gate.settings.MAX_UNSEGMENTED_SPAN:
                 raise ValueError("Reached maximum unsegmented text span.")
@@ -70,8 +71,7 @@ class WorkflowOrchestrator:
             punctuated_text = ""
             for x in self.text.punctuated_segments[first_pun:]:
                 punctuated_text += f"{x.rstrip()}\n<break>\n"
-
-            print(f"\n{self.text.page_labels[i]}\n")                                       
+                                       
             print(self.text.working_segment["text"])
 
             attempts = 0
