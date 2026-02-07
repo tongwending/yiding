@@ -185,6 +185,7 @@ CONTENT RULES
 - Do not add explanations, commentary, or notes.
 - Do not italicize or bold.
 - If a character is ⬤, it means it is an unknown character. Interpret it in its context.
+- If the text is a short and unpunctuated, it is a title or header; translate accordingly and do NOT end it with a period.
 
 OUTPUT
 - Output ONLY the translation of "Text to be translated:" with no extra text.
@@ -195,37 +196,6 @@ EDGE CASE
 STYLISTIC GUIDELINES (MUST FOLLOW){settings.TRANSLATION_GUIDELINES}
 """
 
-# ------------------------------------------------------------------------------------------
-
-def instruct_title_translation (settings):
-    return f"""Translate the given Chinese title into {settings.LANGUAGE}.
-
-CONTEXT AND SCOPE
-- Preceding text may be provided for context and continuity.
-- Translate ONLY the title/header/tail title provided as the target. Do not translate the preceding context.
-
-TITLE PUNCTUATION
-- Do NOT end a title/header/tail title with a period.
-
-PARENTHESES (SMALL-CHARACTER NOTES)
-- Parentheses contain glosses/commentary.
-- Translate the content inside parentheses while keeping the parentheses in place.
-- Do NOT introduce any new parentheses; keep only those that already exist.
-
-CONTENT RULES
-- Do not include any Chinese terms in the translation; translate them instead.
-- Do not add explanations, commentary, or notes.
-- Do not italicize or bold.
-- If a character is ⬤, it means it is an unknown character. Interpret it in its context.
-
-OUTPUT
-- Output ONLY the translated title, with no extra text.
-
-EDGE CASE
-- If the user provides an empty string OR a single underscore character "_", output exactly "_" and nothing else.
-
-STYLE GUIDELINES (MUST FOLLOW){settings.TITLE_TRANSLATION_GUIDELINES}
-"""    
 # ------------------------------------------------------------------------------------------
 
 INCONSISTENCIES = """
@@ -328,7 +298,7 @@ SELECTION GUIDELINES
 - Select whole phrases only when they are idiomatic expressions; in that case, include both:
   - the full idiomatic phrase, and
   - the key terms it contains (as separate entries).
-- If the segment contains a title, include:
+- If the segment contains a book title, include:
   - the full title as one entry, and
   - each meaningful term within the title as separate entries.
 - Do not include any surrounding quote/title punctuation characters in the terms:

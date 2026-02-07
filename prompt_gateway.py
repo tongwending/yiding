@@ -36,7 +36,8 @@ class PromptGateway:
                     self.settings.PUNCTUATION_MODEL,
                     self.settings.PUNCTUATION_REASONING,
                     self.settings.PUNCTUATION_VERBOSITY,
-                    self.settings.PUNCTUATION_TEMPERATURE)
+                    self.settings.PUNCTUATION_TEMPERATURE,
+                    self.settings.PUNCTUATION_TOP_P)
         
         self.punctuation_examinator = Invoker(
                     self.create_client(self.settings.PUNCTUATION_EXAMINATION_MODEL),
@@ -45,6 +46,7 @@ class PromptGateway:
                     self.settings.PUNCTUATION_EXAMINATION_REASONING,
                     self.settings.PUNCTUATION_EXAMINATION_VERBOSITY,
                     self.settings.PUNCTUATION_EXAMINATION_TEMPERATURE,
+                    self.settings.PUNCTUATION_EXAMINATION_TOP_P,
                     boolean_response = True)
         
         self.punctuation_corrector = Invoker(
@@ -53,15 +55,20 @@ class PromptGateway:
                     self.settings.PUNCTUATION_CORRECTION_MODEL,
                     self.settings.PUNCTUATION_CORRECTION_REASONING,
                     self.settings.PUNCTUATION_CORRECTION_VERBOSITY,
-                    self.settings.PUNCTUATION_CORRECTION_TEMPERATURE)
+                    self.settings.PUNCTUATION_CORRECTION_TEMPERATURE,
+                    self.settings.PUNCTUATION_CORRECTION_TOP_P)
 
-        self.glossary_selector = Invoker(
-                    self.create_client(self.settings.GLOSSARY_SELECTION_MODEL),
-                    instructors.instruct_glossary_selection(self.settings),
-                    self.settings.GLOSSARY_SELECTION_MODEL,
-                    self.settings.GLOSSARY_SELECTION_REASONING,
-                    self.settings.GLOSSARY_SELECTION_VERBOSITY,
-                    self.settings.GLOSSARY_SELECTION_TEMPERATURE)
+        if not self.settings.LLM_GLOSSARY_SELECTION:
+            self.glossary_selector = None
+        else:
+            self.glossary_selector = Invoker(
+                        self.create_client(self.settings.GLOSSARY_SELECTION_MODEL),
+                        instructors.instruct_glossary_selection(self.settings),
+                        self.settings.GLOSSARY_SELECTION_MODEL,
+                        self.settings.GLOSSARY_SELECTION_REASONING,
+                        self.settings.GLOSSARY_SELECTION_VERBOSITY,
+                        self.settings.GLOSSARY_SELECTION_TEMPERATURE,
+                        self.settings.GLOSSARY_SELECTION_TOP_P)
 
         self.translator = Invoker(
                     self.create_client(self.settings.TRANSLATION_MODEL),
@@ -69,15 +76,8 @@ class PromptGateway:
                     self.settings.TRANSLATION_MODEL,
                     self.settings.TRANSLATION_REASONING,
                     self.settings.TRANSLATION_VERBOSITY,
-                    self.settings.TRANSLATION_TEMPERATURE)
-
-        self.title_translator = Invoker(
-                    self.create_client(self.settings.TITLE_TRANSLATION_MODEL),
-                    instructors.instruct_title_translation(self.settings),
-                    self.settings.TITLE_TRANSLATION_MODEL,
-                    self.settings.TITLE_TRANSLATION_REASONING,
-                    self.settings.TITLE_TRANSLATION_VERBOSITY,
-                    self.settings.TITLE_TRANSLATION_TEMPERATURE)
+                    self.settings.TRANSLATION_TEMPERATURE,
+                    self.settings.TRANSLATION_TOP_P)
 
         self.translation_examinator = Invoker(
                     self.create_client(self.settings.TRANSLATION_EXAMINATION_MODEL),
@@ -86,6 +86,7 @@ class PromptGateway:
                     self.settings.TRANSLATION_EXAMINATION_REASONING,
                     self.settings.TRANSLATION_EXAMINATION_VERBOSITY,
                     self.settings.TRANSLATION_EXAMINATION_TEMPERATURE,
+                    self.settings.TRANSLATION_EXAMINATION_TOP_P,
                     boolean_response = True)
 
         self.translation_corrector = Invoker(
@@ -94,7 +95,8 @@ class PromptGateway:
                     self.settings.TRANSLATION_CORRECTION_MODEL,
                     self.settings.TRANSLATION_CORRECTION_REASONING,
                     self.settings.TRANSLATION_CORRECTION_VERBOSITY,
-                    self.settings.TRANSLATION_CORRECTION_TEMPERATURE)
+                    self.settings.TRANSLATION_CORRECTION_TEMPERATURE,
+                    self.settings.TRANSLATION_CORRECTION_TOP_P)
 
         self.glossary_extractor = Invoker(
                     self.create_client(self.settings.GLOSSARY_EXTRACTION_MODEL),
@@ -102,43 +104,8 @@ class PromptGateway:
                     self.settings.GLOSSARY_EXTRACTION_MODEL,
                     self.settings.GLOSSARY_EXTRACTION_REASONING,
                     self.settings.GLOSSARY_EXTRACTION_VERBOSITY,
-                    self.settings.GLOSSARY_EXTRACTION_TEMPERATURE)
-
-        # prepare the text for printing the settings
-        self.prompting_settings = {"punctuation": "", "translation": ""}
-        
-        self.prompting_settings["punctuation"] = (
-            "Punctuation settings:\n"
-            f"punctuation cross-check: {self.settings.PUNCTUATION_CROSS_CHECK}\n"
-            f"fascimile span: {self.settings.FASCIMILE_SPAN}\n"
-            f"punctuation span: {self.settings.PUNCTUATION_SPAN}\n"
-            f"maximum unsegmented span: {self.settings.MAX_UNSEGMENTED_SPAN}\n"
-            f"maximum punctuation attempts: {self.settings.MAX_PUNCTUATION_ATTEMPTS}\n"
-            f"punctuation guidelines:\n{self.settings.PUNCTUATION_GUIDELINES}")
-        invokers = {self.punctuator : "punctuation",
-                    self.punctuation_examinator : "punctuation examination",
-                    self.punctuation_corrector : "punctuation correction"}
-        for x in invokers:
-            self.prompting_settings["punctuation"] += (
-                f"\n{invokers[x]}: [model: {x.model}, reasoning: {x.reasoning}, verbosity: {x.verbosity}, temperature: {x.temperature}]")
-
-        self.prompting_settings["translation"] = (
-            "Translation settings:\n"
-            f"translation cross-check: {self.settings.TRANSLATION_CROSS_CHECK}\n"
-            f"translation language: {self.settings.LANGUAGE}\n"
-            f"translation span: {self.settings.TRANSLATION_SPAN}\n"
-            f"glossary file: {self.settings.GLOSSARY_FILE}\n"
-            f"translation guidelines:\n{self.settings.TRANSLATION_GUIDELINES}\n"
-            f"title translation guidelines:\n{self.settings.TITLE_TRANSLATION_GUIDELINES}")
-        invokers = {self.glossary_selector : "glossary selection",
-                    self.translator : "translation",
-                    self.title_translator : "title translation",
-                    self.translation_examinator : "translation examination",
-                    self.translation_corrector : "translation correction",
-                    self.glossary_extractor : "glossary extraction"}
-        for x in invokers:
-            self.prompting_settings["translation"] += (
-                f"\n{invokers[x]}: [model: {x.model}, reasoning: {x.reasoning}, verbosity: {x.verbosity}, temperature: {x.temperature}]")
+                    self.settings.GLOSSARY_EXTRACTION_TEMPERATURE,
+                    self.settings.GLOSSARY_EXTRACTION_TOP_P)
                       
 # ------------------------------------------------------------------------------------------
 
@@ -197,12 +164,11 @@ class PromptGateway:
             self.punctuator,
             self.punctuation_examinator,
             self.punctuation_corrector,
-            self.glossary_selector,
+            *((self.glossary_selector,) if self.glossary_selector else ()),
             self.translator,
             self.translation_examinator,
             self.translation_corrector,
             self.glossary_extractor,
-            self.title_translator,
         ):
             inv.bind_client(self.create_client(inv.model))
 

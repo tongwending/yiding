@@ -30,25 +30,26 @@ class SegmentedText:
         self.glosses = []
         self.punctuated_glosses = []
         
-        self.segment_glossaries = []
         self.translation_glossary = {}
 
+        self.working_i = 0
+        self.working_text = ""
+        self.working_labels = []
+        self.translation_i = 0
+
         self.is_punctuated = False
-        self.working_segment = {"i": 0, "text": "", "labels": []}
-        
         self.prompting_settings = {'punctuation': "", 'translation': ""}
         
                                     
     def full_title(self):
         fulltitle = (self.original_title if self.original_title else "Untitled")\
-                  + (f"- {self.translated_title}" if self.translated_title else "")
+                  + (f" - {self.translated_title}" if self.translated_title else "")
         return fulltitle
 
     def empty_translation(self, empty_title = True):
+        self.translation_i = 0
         self.translated_segments = []
-        self.segment_glossaries = []
         self.translation_glossary = {}
-        self.working_segment = {"i": 0, "text": "", "labels": []}
         if empty_title:
             self.translated_title = None
         self.prompting_settings['translation'] = ""
@@ -57,12 +58,87 @@ class SegmentedText:
 # i/o behaviour
 # ------------------------------------------------------------------------------------------
 
+    def print_punctuation_settings(self):
+        text = (
+            "Punctuation settings:\n"
+            f"punctuation cross-check: {self.settings.PUNCTUATION_CROSS_CHECK}\n"
+            f"fascimile span: {self.settings.FASCIMILE_SPAN}\n"
+            f"punctuation span: {self.settings.PUNCTUATION_SPAN}\n"
+            f"maximum unsegmented span: {self.settings.MAX_UNSEGMENTED_SPAN}\n"
+            f"maximum punctuation attempts: {self.settings.MAX_PUNCTUATION_ATTEMPTS}\n"
+            f"punctuation guidelines:\n{self.settings.PUNCTUATION_GUIDELINES}\n"
+            "punctuation: "
+                f"model: {self.settings.PUNCTUATION_MODEL}, "
+                f"reasoning: {self.settings.PUNCTUATION_REASONING}, "
+                f"verbosity: {self.settings.PUNCTUATION_VERBOSITY}, "
+                f"temperature: {self.settings.PUNCTUATION_TEMPERATURE}, "
+                f"top_p: {self.settings.PUNCTUATION_TOP_P}\n"
+            "punctuation examination: "
+                f"model: {self.settings.PUNCTUATION_EXAMINATION_MODEL}, "
+                f"reasoning: {self.settings.PUNCTUATION_EXAMINATION_REASONING}, "
+                f"verbosity: {self.settings.PUNCTUATION_EXAMINATION_VERBOSITY}, "
+                f"temperature: {self.settings.PUNCTUATION_EXAMINATION_TEMPERATURE}, "
+                f"top_p: {self.settings.PUNCTUATION_EXAMINATION_TOP_P}\n"
+            "punctuation correction: "
+                f"model: {self.settings.PUNCTUATION_CORRECTION_MODEL}, "
+                f"reasoning: {self.settings.PUNCTUATION_CORRECTION_REASONING}, "
+                f"verbosity: {self.settings.PUNCTUATION_CORRECTION_VERBOSITY}, "
+                f"temperature: {self.settings.PUNCTUATION_CORRECTION_TEMPERATURE}, "
+                f"top_p: {self.settings.PUNCTUATION_CORRECTION_TOP_P}")    
+        return text
+
+    def print_translation_settings(self):
+        text = (
+            "Translation settings:\n"
+            +f"translation cross-check: {self.settings.TRANSLATION_CROSS_CHECK}\n"
+            +(f"LLM-powered glossary selection: {self.settings.LLM_GLOSSARY_SELECTION}\n"
+                if self.settings.LLM_GLOSSARY_SELECTION else "")
+            +f"translation language: {self.settings.LANGUAGE}\n"
+            +f"translation span: {self.settings.TRANSLATION_SPAN}\n"
+            +f"glossary file: {self.settings.GLOSSARY_FILE}\n"
+            +f"translation guidelines:\n{self.settings.TRANSLATION_GUIDELINES}\n"
+            +(("glossary selection: "
+                f"model: {self.settings.GLOSSARY_SELECTION_MODEL}, "
+                f"reasoning: {self.settings.GLOSSARY_SELECTION_REASONING}, "
+                f"verbosity: {self.settings.GLOSSARY_SELECTION_VERBOSITY}, "
+                f"temperature: {self.settings.GLOSSARY_SELECTION_TEMPERATURE}, "
+                f"top_p: {self.settings.GLOSSARY_SELECTION_TOP_P}\n")
+                if self.settings.LLM_GLOSSARY_SELECTION else "")
+            +("translation: "
+                f"model: {self.settings.TRANSLATION_MODEL}, "
+                f"reasoning: {self.settings.TRANSLATION_REASONING}, "
+                f"verbosity: {self.settings.TRANSLATION_VERBOSITY}, "
+                f"temperature: {self.settings.TRANSLATION_TEMPERATURE}, "
+                f"top_p: {self.settings.TRANSLATION_TOP_P}\n")
+            +("translation examination: "
+                f"model: {self.settings.TRANSLATION_EXAMINATION_MODEL}, "
+                f"reasoning: {self.settings.TRANSLATION_EXAMINATION_REASONING}, "
+                f"verbosity: {self.settings.TRANSLATION_EXAMINATION_VERBOSITY}, "
+                f"temperature: {self.settings.TRANSLATION_EXAMINATION_TEMPERATURE}, "
+                f"top_p: {self.settings.TRANSLATION_EXAMINATION_TOP_P}\n")
+            +("translation correction: "
+                f"model: {self.settings.TRANSLATION_CORRECTION_MODEL}, "
+                f"reasoning: {self.settings.TRANSLATION_CORRECTION_REASONING}, "
+                f"verbosity: {self.settings.TRANSLATION_CORRECTION_VERBOSITY}, "
+                f"temperature: {self.settings.TRANSLATION_CORRECTION_TEMPERATURE}, "
+                f"top_p: {self.settings.TRANSLATION_CORRECTION_TOP_P}\n")
+            +("glossary extraction: "
+                f"model: {self.settings.GLOSSARY_EXTRACTION_MODEL}, "
+                f"reasoning: {self.settings.GLOSSARY_EXTRACTION_REASONING}, "
+                f"verbosity: {self.settings.GLOSSARY_EXTRACTION_VERBOSITY}, "
+                f"temperature: {self.settings.GLOSSARY_EXTRACTION_TEMPERATURE}, "
+                f"top_p: {self.settings.GLOSSARY_EXTRACTION_TOP_P}")
+            )
+        return text
+
+# ------------------------------------------------------------------------------------------
+
     def print_to_file(self, punctuation = True, translation = True,
                       output_file = "docx", table = True):
         if output_file == "docx":
             self.print_to_docx(punctuation = punctuation, translation = translation,
                                table = table)
-    
+   
 # ------------------------------------------------------------------------------------------
 
 
@@ -122,12 +198,9 @@ class SegmentedText:
             properties_text += "Text properties:"
             for prop in self.properties:
                 properties_text += f"\n{prop.rstrip()}"
-        if self.prompting_settings:
-            if translation:
-                settings_text = (f"{self.prompting_settings['punctuation']}\n\n"
-                                  f"{self.prompting_settings['translation']}")
-            else:
-                settings_text = f"{self.prompting_settings['punctuation']}"
+        settings_text = f"{self.print_punctuation_settings()}"
+        if translation:
+            settings_text += f"\n\n{self.print_translation_settings()}"
         run_num = p.add_run(f"{properties_text}\n\n{settings_text}")
         run_num.font.name = 'Times New Roman'
         run_num.font.size = Pt(6)

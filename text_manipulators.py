@@ -16,6 +16,8 @@ punctuation_end = re.compile(rf"[{re.escape(ENDERS)}][{re.escape(CLOSERS)}]*$")
 
 _PARENTHESIS = re.compile(r"\(([^()]*)\)", flags = re.S) # last part is for multiple lines
 
+CHARACTER_PLACEHOLDERS = {'⬤', '■', '◆'} # plalceholders of unknonw characters
+
 non_characters = set()
 # ASCII punctuation and space
 non_characters.update(string.punctuation)    # !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
@@ -35,9 +37,14 @@ non_characters.update(chr(cp) for cp in range(0x2000, 0x206F + 1))
 non_characters.update(chr(cp) for cp in range(0x3000, 0x303F + 1))
 # Halfwidth and Fullwidth Forms: U+FF01–U+FF5E (fullwidth ASCII & punctuation)
 non_characters.update(chr(cp) for cp in range(0xFF01, 0xFF5E + 1))
+# Combine to table 
+_NON_CHARACTERS_SET = set(non_characters)
+
+# Remove character placeholders
+non_characters.difference_update(CHARACTER_PLACEHOLDERS)
 # Remove the character parenthesis
 non_characters.difference_update({'(', ')'})
-# Combine in a table:
+# Combine in a table for stipping punctuation
 _STRIP_TABLE = str.maketrans('', '', ''.join(non_characters))
 
 # ------------------------------------------------------------------------------------------
@@ -159,5 +166,25 @@ def pop_glosses(segment, marker = ""):
     stripped_segment = _PARENTHESIS.sub(_insert_marker, segment)
 
     return stripped_segment, glosses
+
+# ------------------------------------------------------------------------------------------
+
+def find_possible_terms(segment):
+    
+    list_of_terms = []
+
+    def parse_phrase(phrase: str):
+        for span in range(0, len(phrase)):
+            for i in range(0, len(phrase)-span):
+                list_of_terms.append(phrase[i:i+1+span])
+
+    start = 0
+    for i in range(0, len(segment)):
+        if segment[i] in _NON_CHARACTERS_SET:
+            parse_phrase(segment[start:i])
+            start = i+1
+    parse_phrase(segment[start:])
+
+    return list_of_terms
 
 # ------------------------------------------------------------------------------------------

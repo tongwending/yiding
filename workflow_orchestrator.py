@@ -21,45 +21,70 @@ class WorkflowOrchestrator:
 
         self.text = text
         self.gate = gate
+        self.text.settings = self.gate.settings
         self.glossary = (load_glossary(self.gate.settings.GLOSSARY_FILE)
                          if self.gate.settings.GLOSSARY_FILE
                          else {})
-
-        if not self.text.prompting_settings['punctuation']:
-            self.text.prompting_settings['punctuation'] = self.gate.prompting_settings['punctuation']
-        if not self.text.prompting_settings['translation']:
-            self.text.prompting_settings['translation'] = self.gate.prompting_settings['translation']
-
+        
     def save_as_pickle(self, filename = None):
         filename = filename if filename else f"{self.text.full_title()}.pkl"
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
+    def select_glossary(self, segment):
+        selected_glossary = {}
+
+        if self.gate.glossary_selector:
+            selection_of_terms = self.gate.glossary_selector.invoke(
+                                f"Chinese segment:\n{segment}")
+            print(selection_of_terms + "\n")
+            possible_terms = selection_of_terms.splitlines()
+        else:
+            possible_terms = text_manipulators.find_possible_terms(segment)
+            
+        for term in possible_terms:
+            if term in self.glossary:
+                selected_glossary[term] = self.glossary[term]
+        stylized_glossary = stylize_glossary(selected_glossary)
+        print(stylized_glossary)
+
+        return stylized_glossary
+
+    def extract_glossary(self, original, translation):
+        # extract_glossary:
+        extracted_glossary_text = self.gate.glossary_extractor.invoke(
+               f"Chinese segment:\n{original}\n\n"
+               f"{self.gate.settings.LANGUAGE} translation:\n{translation}")
+        print(extracted_glossary_text + "\n")
+        extracted_glossary = destylize_glossary(extracted_glossary_text)
+        # update glossaries
+        update_glossary(self.glossary, extracted_glossary)
+        update_glossary(self.text.translation_glossary, extracted_glossary)
+
 # ------------------------------------------------------------------------------------------
 
     def resume_punctuation(self):
 
-        if self.text.working_segment["i"] == 0 and len(self.text.segments) > 1:
-            self.text.working_segment["text"] = self.text.segments[0]
-            self.text.working_segment["labels"].append(
+        if self.text.working_i == 0 and len(self.text.segments) > 1:
+            self.text.working_text = self.text.segments[0]
+            self.text.working_labels.append(
                         [self.text.page_labels[0], 1, self.text.page_lines[0]])
-            self.text.working_segment["i"] += 1
-            print(f"\n{self.text.page_labels[0]}\n")
+            self.text.working_i += 1
             
 
-        for i in range(self.text.working_segment["i"],
+        for i in range(self.text.working_i,
                        len(self.text.segments),
                        self.gate.settings.FASCIMILE_SPAN):
                 
             for j in range(0, self.gate.settings.FASCIMILE_SPAN):
                 if i+j < len(self.text.segments):
-                    self.text.working_segment["text"] += self.text.segments[i+j]
-                    self.text.working_segment["text"] = text_manipulators.clean(self.text.working_segment["text"])
-                    self.text.working_segment["labels"].append(
+                    self.text.working_text += self.text.segments[i+j]
+                    self.text.working_text = text_manipulators.clean(self.text.working_text)
+                    self.text.working_labels.append(
                                 [self.text.page_labels[i+j], 1,self.text.page_lines[i+j]])
                     print(f"\n{self.text.page_labels[i+j]}\n")
 
-            if len(self.text.working_segment["text"]) > self.gate.settings.MAX_UNSEGMENTED_SPAN:
+            if len(self.text.working_text) > self.gate.settings.MAX_UNSEGMENTED_SPAN:
                 raise ValueError("Reached maximum unsegmented text span.")
             
             # put together previous puncuated segmets
@@ -72,7 +97,7 @@ class WorkflowOrchestrator:
             for x in self.text.punctuated_segments[first_pun:]:
                 punctuated_text += f"{x.rstrip()}\n<break>\n"
                                        
-            print(self.text.working_segment["text"])
+            print(self.text.working_text)
 
             attempts = 0
             response_is_uncorrupted = False
@@ -80,11 +105,11 @@ class WorkflowOrchestrator:
                 segmented_text = self.gate.punctuator.invoke(
                     (f"Preceding punctuated text:\n{punctuated_text}"
                         if len(self.text.punctuated_segments) > 0 else "")
-                    +f"\n\n\nText to be punctuated:\n{self.text.working_segment['text']}")
+                    +f"\n\n\nText to be punctuated:\n{self.text.working_text}")
                 print(f"Attempt {attempts+1}:\n{segmented_text}")
                 attempts += 1
                 # Ensure original Chinese characters are not corrupted:
-                if text_manipulators.strip_punctuation(self.text.working_segment['text']) == text_manipulators.strip_punctuation(segmented_text):
+                if text_manipulators.strip_punctuation(self.text.working_text) == text_manipulators.strip_punctuation(segmented_text):
                     response_is_uncorrupted = True
 
             if response_is_uncorrupted == False:
@@ -94,12 +119,12 @@ class WorkflowOrchestrator:
 
             def chop_cross_check_and_append(x):
                 a, b, c, d =  text_manipulators.chop_from_working_segment(x,
-                                                        self.text.working_segment["text"],
-                                                        self.text.working_segment["labels"])
+                                                        self.text.working_text,
+                                                        self.text.working_labels)
                 self.text.unpunctuated_segments.append(a)
-                self.text.working_segment["text"] = b
+                self.text.working_text = b
                 self.text.segment_labels.append(c)
-                self.text.working_segment["labels"] = d
+                self.text.working_labels = d
 
                 if self.gate.settings.PUNCTUATION_CROSS_CHECK:
                     for j in range(0, len(self.text.punctuated_segments)):
@@ -138,9 +163,9 @@ class WorkflowOrchestrator:
                 if x:
                     chop_cross_check_and_append(x)
             
-            self.text.working_segment["i"] += self.gate.settings.FASCIMILE_SPAN
+            self.text.working_i += self.gate.settings.FASCIMILE_SPAN
 
-            if self.text.working_segment["i"] >= len(self.text.segments):
+            if self.text.working_i >= len(self.text.segments):
                 if leftover.rstrip():
                     chop_cross_check_and_append(leftover)
                 self.text.is_punctuated = True
@@ -152,24 +177,16 @@ class WorkflowOrchestrator:
 
     def resume_translation(self):
 
-        if not self.text.translated_title:
+        if self.text.original_title and not self.text.translated_title:
             self.translate_title()
 
         if not self.text.is_punctuated:
             self.resume_punctuation()
         
-        for i in range(len(self.text.segment_glossaries),
-                       len(self.text.punctuated_segments)):
+        for i in range(self.text.translation_i, len(self.text.punctuated_segments)):
                     
-            # build segment glossary:
-            selected_glossary = {}
-            selection_of_terms = self.gate.glossary_selector.invoke(
-                                f"Chinese segment:\n{self.text.punctuated_segments[i]}")
-            print(selection_of_terms + "\n")
-
-            for term in selection_of_terms.splitlines():
-                if term in self.glossary:
-                    selected_glossary[term] = self.glossary[term]
+            # select glossary
+            selected_glossary = self.select_glossary(self.text.punctuated_segments[i])
                             
             # translate:
             span = (self.gate.settings.TRANSLATION_SPAN
@@ -189,18 +206,10 @@ class WorkflowOrchestrator:
                 f"Text to be translated:\n{self.text.punctuated_segments[i]}")
             print(self.text.punctuated_segments[i])
             
-            if self.text.punctuated_segments[i].strip()==self.text.unpunctuated_segments[i].strip():
-                instructions = (f"{self.gate.title_translator.instructions}\n\n"
+            instructions = (f"{self.gate.translator.instructions}\n\n"
                                 "Use the glossary below (if applicable):\n"
-                                f"{stylize_glossary(selected_glossary)}")
-                translation = self.gate.title_translator.invoke(prompt,
-                                                          instructions = instructions)
-            else:
-                instructions = (f"{self.gate.translator.instructions}\n\n"
-                                "Use the glossary below (if applicable):\n"
-                                f"{stylize_glossary(selected_glossary)}")
-                translation = self.gate.translator.invoke(prompt,
-                                                          instructions = instructions)
+                                f"{selected_glossary}")
+            translation = self.gate.translator.invoke(prompt, instructions = instructions)
             print(translation + "\n")
             self.text.translated_segments.append(translation.strip())
 
@@ -220,58 +229,34 @@ class WorkflowOrchestrator:
                     else:
                         print(f"No inconsistencies with segment {j}.")
                         
-            # extract_glossary:
-            extracted_glossary_text = self.gate.glossary_extractor.invoke(
-                   f"Chinese segment:\n{self.text.punctuated_segments[i]}\n\n"
-                   f"{self.gate.settings.LANGUAGE} translation:\n{self.text.translated_segments[i]}")
-            print(extracted_glossary_text + "\n")
-            extracted_glossary = destylize_glossary(extracted_glossary_text)
-            update_glossary(self.glossary, extracted_glossary)
-            update_glossary(self.text.translation_glossary, extracted_glossary)
-            self.text.segment_glossaries.append(extracted_glossary)
+            # extract glossary from segment and update the global glossaries
+            self.extract_glossary(self.text.punctuated_segments[i],
+                                  self.text.translated_segments[i])
 
             # save progress:
+            self.text.translation_i += 1
             self.save_as_pickle()
 
 # ------------------------------------------------------------------------------------------
 
     def translate_title(self):
-        
-        # select glossary:
-        selection_text = self.gate.glossary_selector.invoke(f"{self.text.original_title}")
 
-        # prepare glossary:
-        title_glossary = {}
-        for term in selection_text.splitlines():
-            if term in self.glossary:
-                title_glossary[term] = self.glossary[term]
-        stylized_glossary = stylize_glossary(title_glossary)
-
-        # prepare translation  instructions:
-        instructions = (self.gate.title_translator.instructions\
-                        + "\n\nUse the glossary below (if applicable):\n"\
-                        + stylized_glossary)
+        # select glossary and insert it to instructions:
+        selected_glossary = self.select_glossary(self.text.original_title)
+        instructions = (self.gate.translator.instructions
+                       + "\n\nUse the glossary below (if applicable):\n"\
+                       + selected_glossary)
 
         # translate title:
-        print(stylized_glossary + "\n\n" + self.text.original_title + "\n")
-        title = self.gate.title_translator.invoke(f"{self.text.original_title}",
+        print(selected_glossary + "\n\n" + self.text.original_title + "\n")
+        title = self.gate.translator.invoke(f"{self.text.original_title}",
                                                   instructions = instructions)
         print(title + "\n\n")
         self.text.translated_title = title.strip()
 
-        # extract glossary:
-        prompt = ("Chinese original:\n"
-                  f"{self.text.original_title}\n\n"
-                  f"{self.gate.settings.LANGUAGE} translation:\n"
-                  f"{self.text.translated_title}")
-        glossary_text = self.gate.glossary_extractor.invoke(prompt)
-        print(glossary_text + "\n")
-        glossary_additions = destylize_glossary(glossary_text)
-
-        # update glossaries:
-        update_glossary(self.glossary, glossary_additions)
-        update_glossary(self.text.translation_glossary, glossary_additions)
-
+        # extract glossary from title and update global glossaries:
+        self.extract_glossary(self.text.original_title, self.text.translated_title)
+        
         # save progress:
         self.save_as_pickle()
 

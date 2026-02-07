@@ -8,6 +8,13 @@ import json
 
 # ------------------------------------------------------------------------------------------
 
+GPT_MODELS = ("o1", "o1-mini", "o1-pro",
+              "o3", "o3-deep-research", "o4-mini-deep-research",
+              "o4-mini")
+GEMINI_MODELS = ()
+
+# ------------------------------------------------------------------------------------------
+
 GPT_BOOLEAN_SCHEMA = {
     "type": "json_schema",
     "name": "bool_only",
@@ -41,6 +48,7 @@ class Invoker:
                  reasoning,
                  verbosity,
                  temperature,
+                 top_p,
                  boolean_response = False):
 
         self.client = client
@@ -49,11 +57,14 @@ class Invoker:
         self.model = model
         self.verbosity = verbosity
         self.temperature = temperature
+        self.top_p = top_p
         self.boolean_response = boolean_response
 
-        if self.model[0:3] == "gpt":
+        if self.model in GPT_MODELS or self.model.startswith("gpt"):
+            self.model_type = "gpt"
             self.reasoning = reasoning
-        elif self.model[0:6] == "gemini":
+        elif self.model in GEMINI_MODELS or self.model.startswith("gemini"):
+            self.model_type = "gemini"
             self.reasoning = _GEMINI_THINKING_LEVEL.get((reasoning or "none").lower(),
                                                          types.ThinkingLevel.MINIMAL)
         else:
@@ -62,32 +73,36 @@ class Invoker:
     def invoke(self, prompt,
                instructions = None):
 
-        instructions = instructions if instructions else self.instructions
+        instructions = self.instructions if instructions is None else instructions
 
-        if self.model[0:3] == "gpt":
+        if self.model_type == "gpt":
             response = self.client.responses.create(
                     model = self.model,
                     instructions = instructions,
                     input = prompt,
-                    reasoning = {"effort": self.reasoning},
-                    text = {"verbosity": self.verbosity,
-                         **({"format": GPT_BOOLEAN_SCHEMA} if self.boolean_response else {})
-                         },
-                    temperature = self.temperature
+                    **({"reasoning": {"effort": self.reasoning}} if self.reasoning is not None else {}),
+                    text = {
+                        **({"verbosity": self.verbosity} if self.verbosity is not None else {}),
+                           **({"format": GPT_BOOLEAN_SCHEMA} if self.boolean_response else {})
+                            },
+                    **({"temperature": self.temperature} if self.temperature is not None else {}),
+                    **({"top_p": self.top_p} if self.top_p is not None else {})
                     )
             if self.boolean_response:
                 return json.loads(response.output_text)["b"]    # boolean True/False
             else:        
                 return response.output_text
             
-        elif self.model[0:6] == "gemini":
+        elif self.model_type == "gemini":
             response = self.client.models.generate_content(
                 model = self.model,
                 contents = prompt,
                 config = types.GenerateContentConfig(
                     system_instruction = instructions,
-                    thinking_config = types.ThinkingConfig(thinking_level = self.reasoning),
-                    temperature = self.temperature,
+                    **({"thinking_config": types.ThinkingConfig(thinking_level = self.reasoning)}
+                       if self.reasoning is not None else {}),
+                    **({"temperature": self.temperature} if self.temperature is not None else {}),
+                    **({"top_p": self.top_p} if self.top_p is not None else {}),
                     **({"response_mime_type": "application/json",
                         "response_json_schema": GEMINI_BOOLEAN_SCHEMA}
                        if self.boolean_response else {}))
@@ -96,7 +111,7 @@ class Invoker:
                 return json.loads(response.text)["b"]    # boolean True/False
             else:        
                 return response.text
-            
+
 # ------------------------------------------------------------------------------------------
 
     def __getstate__(self):
