@@ -29,6 +29,7 @@ NEWLINES / LINEATION
 PARENTHESES (SMALL-CHARACTER NOTES)
 - Parentheses contain glosses/commentary.
 - Keep ASCII parentheses exactly as they are: "(" and ")" (do not convert to fullwidth).
+- Punctuate or not inside the parethesis according to the context.
 - Punctuate surrounding text appropriately while keeping the parenthetical content in place.
 
 CHARACTER INTEGRITY
@@ -181,11 +182,11 @@ PARENTHESES (SMALL-CHARACTER NOTES)
 - Do NOT introduce any new parentheses; keep only those already present.
 
 CONTENT RULES
-- Do not include any Chinese terms in the translation; translate them instead.
+- Do not include any Chinese characters in the translated text.
 - Do not add explanations, commentary, or notes.
 - Do not italicize or bold.
 - If a character is ⬤, it means it is an unknown character. Interpret it in its context.
-- If the text is a short and unpunctuated, it is a title or header; translate accordingly and do NOT end it with a period.
+- If the text is a short and unpunctuated, it is a title or header.
 
 OUTPUT
 - Output ONLY the translation of "Text to be translated:" with no extra text.
@@ -259,6 +260,12 @@ CORRECTION RULES
 - Change only the inconsistent passages; do not change anything else.
 - Make tiny additional changes elsewhere only if necessary for the correction to work.
 - Assume there may be very few inconsistent sentences.
+- Do not include any Chinese characters in the translated text.
+- Do not add explanations, commentary, or notes.
+- Do not italicize or bold.
+- If a character is ⬤, it means it is an unknown character. Interpret it in its context.
+- If the text is a short and unpunctuated, it is a title or header.
+
 
 OUTPUT
 - Return ONLY the minimally corrected translation of Segment B (corrected B').
@@ -310,8 +317,9 @@ PINYIN RULES
 - Use correct umlauts where required (e.g., ü).
 
 NORMALIZATION RULES
-- Except where a term is inherently plural, give the {settings.LANGUAGE} translation in singular form even if the provided translation uses plural.
+- Give the {settings.LANGUAGE} translation in singular form even if the provided translation uses plural (except when a term is inherently plural).
 - Capitalize only proper names.
+- Do not include articles.
 """
 
 # ------------------------------------------------------------------------------------------

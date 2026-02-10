@@ -65,8 +65,11 @@ class Invoker:
             self.reasoning = reasoning
         elif self.model in GEMINI_MODELS or self.model.startswith("gemini"):
             self.model_type = "gemini"
-            self.reasoning = _GEMINI_THINKING_LEVEL.get((reasoning or "none").lower(),
-                                                         types.ThinkingLevel.MINIMAL)
+            if reasoning:
+                self.reasoning = _GEMINI_THINKING_LEVEL.get((reasoning or "none").lower(),
+                                                             types.ThinkingLevel.MINIMAL)
+            else:
+                self.reasoning = None
         else:
             raise ValueError("Error: Unknown LLM model.")
 

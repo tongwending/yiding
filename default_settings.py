@@ -26,9 +26,9 @@ PUNCTUATION_GUIDELINES = """
 """
 
 TRANSLATION_GUIDELINES = """
-- The translation should be academic without compromising the poetics of the original Chinese text.
+- The translation should be easy flowing, readable, and smooth.
 - Favor translating nouns in the singular unless context clearly requires plural.
-- Preserve Chinese parataxis using the equivalent of ； (分號 fēnhào), i.e., semicolons where appropriate.
+- Follow the Chinese text punctuation as faithfully as possible.
 - When referencing the title of a scripture book, use single quotation marks: ‘ ’.
 - When quoting speech or a passage, use double quotation marks: “ ”.
 - Do not start paragraphs with indentation.
@@ -42,7 +42,7 @@ PUNCTUATION_CROSS_CHECK = True # If true, cost is subject to O(n^2) growth.
 TRANSLATION_CROSS_CHECK = True # If true, cost is subject to O(n^2) growth.
 LLM_GLOSSARY_SELECTION = False # If false, the selection is mechanical.
 
-FASCIMILE_SPAN = 1
+FACSIMILE_SPAN = 1
 PUNCTUATION_SPAN = 3 # number of previous punctuated segments in prompts
 TRANSLATION_SPAN = 2 # number of previous punctuated-translated segment pairs in prompts
 
@@ -57,19 +57,19 @@ MAX_PUNCTUATION_ATTEMPTS = 7
 
 PUNCTUATION_MODEL = "gpt-5.2"
 PUNCTUATION_REASONING = "none"
-PUNCTUATION_VERBOSITY = "low"
+PUNCTUATION_VERBOSITY = "medium"
 PUNCTUATION_TEMPERATURE = None
 PUNCTUATION_TOP_P = None
 
-PUNCTUATION_EXAMINATION_MODEL = "gpt-5.2"
-PUNCTUATION_EXAMINATION_REASONING = "none"
-PUNCTUATION_EXAMINATION_VERBOSITY = "low"
-PUNCTUATION_EXAMINATION_TEMPERATURE = None
+PUNCTUATION_EXAMINATION_MODEL = "gemini-2.5-flash"
+PUNCTUATION_EXAMINATION_REASONING = None
+PUNCTUATION_EXAMINATION_VERBOSITY = None
+PUNCTUATION_EXAMINATION_TEMPERATURE = 0
 PUNCTUATION_EXAMINATION_TOP_P = None
 
 PUNCTUATION_CORRECTION_MODEL = "gpt-5.2"
 PUNCTUATION_CORRECTION_REASONING = "low"
-PUNCTUATION_CORRECTION_VERBOSITY = "low"
+PUNCTUATION_CORRECTION_VERBOSITY = "medium"
 PUNCTUATION_CORRECTION_TEMPERATURE = None
 PUNCTUATION_CORRECTION_TOP_P = None
 
@@ -80,27 +80,27 @@ GLOSSARY_SELECTION_TEMPERATURE = None
 GLOSSARY_SELECTION_TOP_P = 1
 
 TRANSLATION_MODEL = "gpt-5.2"
-TRANSLATION_REASONING = "none"
+TRANSLATION_REASONING = "medium"
 TRANSLATION_VERBOSITY = "medium"
 TRANSLATION_TEMPERATURE = None
 TRANSLATION_TOP_P = None
 
-TRANSLATION_EXAMINATION_MODEL = "gpt-5.2"
-TRANSLATION_EXAMINATION_REASONING = "none"
-TRANSLATION_EXAMINATION_VERBOSITY = "low"
-TRANSLATION_EXAMINATION_TEMPERATURE = None
+TRANSLATION_EXAMINATION_MODEL = "gemini-2.5-flash"
+TRANSLATION_EXAMINATION_REASONING = None
+TRANSLATION_EXAMINATION_VERBOSITY = None
+TRANSLATION_EXAMINATION_TEMPERATURE = 0
 TRANSLATION_EXAMINATION_TOP_P = None
 
 TRANSLATION_CORRECTION_MODEL = "gpt-5.2"
-TRANSLATION_CORRECTION_REASONING = "low"
-TRANSLATION_CORRECTION_VERBOSITY = "low"
+TRANSLATION_CORRECTION_REASONING = "medium"
+TRANSLATION_CORRECTION_VERBOSITY = "medium"
 TRANSLATION_CORRECTION_TEMPERATURE = None
 TRANSLATION_CORRECTION_TOP_P = None
 
 GLOSSARY_EXTRACTION_MODEL = "gpt-5.2"
 GLOSSARY_EXTRACTION_REASONING = "none"
 GLOSSARY_EXTRACTION_VERBOSITY = "medium"
-GLOSSARY_EXTRACTION_TEMPERATURE = None
+GLOSSARY_EXTRACTION_TEMPERATURE = 0
 GLOSSARY_EXTRACTION_TOP_P = None
 
 # ------------------------------------------------------------------------------------------

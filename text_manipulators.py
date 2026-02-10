@@ -14,6 +14,8 @@ CLOSERS = '"”’」』】）》）〉》〕］｝」』｣)}›»*'
 punctuation = re.compile(rf"[{re.escape(ENDERS)}][{re.escape(CLOSERS)}]*") # [..]* is regex.
 punctuation_end = re.compile(rf"[{re.escape(ENDERS)}][{re.escape(CLOSERS)}]*$")
 
+INVALID_CHARACTERS = r'[<>:"/\\|?*\x00-\x1F]'
+
 _PARENTHESIS = re.compile(r"\(([^()]*)\)", flags = re.S) # last part is for multiple lines
 
 CHARACTER_PLACEHOLDERS = {'⬤', '■', '◆'} # plalceholders of unknonw characters
@@ -52,6 +54,12 @@ _STRIP_TABLE = str.maketrans('', '', ''.join(non_characters))
 def strip_punctuation(text: str) -> str:
 
     return text.translate(_STRIP_TABLE)
+
+# ------------------------------------------------------------------------------------------
+
+def strip_invalid_characters(text):
+
+    return re.sub(INVALID_CHARACTERS, '', text)
 
 # ------------------------------------------------------------------------------------------
 
@@ -104,7 +112,7 @@ def chop_from_working_segment(chop, working_segment, labels):
     chop = strip_punctuation(chop)
     
     if not chop:
-        raise ValueError("Error: Empty punctuated segment.")
+        return None, working_segment, None, labels
         
     for x in chop:
         if x not in working_segment[end:]:

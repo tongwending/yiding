@@ -28,6 +28,7 @@ class WorkflowOrchestrator:
         
     def save_as_pickle(self, filename = None):
         filename = filename if filename else f"{self.text.full_title()}.pkl"
+        filename = text_manipulators.strip_invalid_characters(filename)
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
@@ -74,9 +75,9 @@ class WorkflowOrchestrator:
 
         for i in range(self.text.working_i,
                        len(self.text.segments),
-                       self.gate.settings.FASCIMILE_SPAN):
+                       self.gate.settings.FACSIMILE_SPAN):
                 
-            for j in range(0, self.gate.settings.FASCIMILE_SPAN):
+            for j in range(0, self.gate.settings.FACSIMILE_SPAN):
                 if i+j < len(self.text.segments):
                     self.text.working_text += self.text.segments[i+j]
                     self.text.working_text = text_manipulators.clean(self.text.working_text)
@@ -121,49 +122,51 @@ class WorkflowOrchestrator:
                 a, b, c, d =  text_manipulators.chop_from_working_segment(x,
                                                         self.text.working_text,
                                                         self.text.working_labels)
-                self.text.unpunctuated_segments.append(a)
                 self.text.working_text = b
-                self.text.segment_labels.append(c)
                 self.text.working_labels = d
+                
+                if a and c:
+                    self.text.unpunctuated_segments.append(a)
+                    self.text.segment_labels.append(c)
 
-                if self.gate.settings.PUNCTUATION_CROSS_CHECK:
-                    for j in range(0, len(self.text.punctuated_segments)):
-                        prompt = (
-                            "Unpunctuated segment A:\n"
-                            f"{self.text.unpunctuated_segments[j]}\n\n"
-                            "Punctuated segment A:\n"
-                            f"{self.text.punctuated_segments[j]}\n\n\n"
-                            "Unpunctuated segment B:\n"
-                            f"{self.text.unpunctuated_segments[-1]}\n"
-                            "\nPunctuated segment B:\n"
-                            f"{x}"
-                                  )
-                        inconsistencies_exist = self.gate.punctuation_examinator.invoke(prompt)
+                    if self.gate.settings.PUNCTUATION_CROSS_CHECK:
+                        for j in range(0, len(self.text.punctuated_segments)):
+                            prompt = (
+                                "Unpunctuated segment A:\n"
+                                f"{self.text.unpunctuated_segments[j]}\n\n"
+                                "Punctuated segment A:\n"
+                                f"{self.text.punctuated_segments[j]}\n\n\n"
+                                "Unpunctuated segment B:\n"
+                                f"{self.text.unpunctuated_segments[-1]}\n"
+                                "\nPunctuated segment B:\n"
+                                f"{x}"
+                                      )
+                            inconsistencies_exist = self.gate.punctuation_examinator.invoke(prompt)
 
-                        if inconsistencies_exist == True:
-                            print(f"Inconsistencies detected with segment {j}.")
-                            attempts = 0
-                            response_is_uncorrupted = False
-                            while not response_is_uncorrupted and attempts < self.gate.settings.MAX_PUNCTUATION_ATTEMPTS:
-                                corrected_segment = self.gate.punctuation_corrector.invoke(prompt)
-                                print(f"Correction attempt {attempts+1}:\n{corrected_segment}")
-                                attempts += 1
-                                # Ensure original Chinese characters are not corrupted:
-                                if text_manipulators.strip_punctuation(self.text.unpunctuated_segments[-1]) == text_manipulators.strip_punctuation(corrected_segment):
-                                    response_is_uncorrupted = True
-                            if response_is_uncorrupted == False:
-                                raise ValueError(CORRUPTION_ERROR)
-                            x = corrected_segment
-                        else:
-                            print(f"No inconsistencies with segment {j}.")
-                        
-                self.text.punctuated_segments.append(x.strip())
+                            if inconsistencies_exist == True:
+                                print(f"Inconsistencies detected with segment {j}.")
+                                attempts = 0
+                                response_is_uncorrupted = False
+                                while not response_is_uncorrupted and attempts < self.gate.settings.MAX_PUNCTUATION_ATTEMPTS:
+                                    corrected_segment = self.gate.punctuation_corrector.invoke(prompt)
+                                    print(f"Correction attempt {attempts+1}:\n{corrected_segment}")
+                                    attempts += 1
+                                    # Ensure original Chinese characters are not corrupted:
+                                    if text_manipulators.strip_punctuation(self.text.unpunctuated_segments[-1]) == text_manipulators.strip_punctuation(corrected_segment):
+                                        response_is_uncorrupted = True
+                                if response_is_uncorrupted == False:
+                                    raise ValueError(CORRUPTION_ERROR)
+                                x = corrected_segment
+                            else:
+                                print(f"No inconsistencies with segment {j}.")
+                            
+                    self.text.punctuated_segments.append(x.strip())
             
             for x in punctuated_segments:
                 if x:
                     chop_cross_check_and_append(x)
             
-            self.text.working_i += self.gate.settings.FASCIMILE_SPAN
+            self.text.working_i += self.gate.settings.FACSIMILE_SPAN
 
             if self.text.working_i >= len(self.text.segments):
                 if leftover.rstrip():

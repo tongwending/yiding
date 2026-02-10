@@ -16,11 +16,9 @@ PARSING_ERROR_MESSAGE = "nonexistent or unknown Kanripo documentation"
 class KanripoText(SegmentedText):
     
 
-    def __init__(self, kanripo_code: str, translated_title = None, glosses_on = True):
+    def __init__(self, kanripo_code: str, glosses_on = True):
 
-        super().__init__(segments = None,
-                         original_title = None,
-                         translated_title = translated_title)
+        super().__init__()
 
         self.kanripo_code = kanripo_code
         self.glosses_on = glosses_on
@@ -39,7 +37,7 @@ class KanripoText(SegmentedText):
 
     def full_title(self): # needs reworkings
         fulltitle = (f"{self.kanripo_code} - {self.original_title}"\
-                     + (f"- {self.translated_title}" if self.translated_title else ""))
+                     + (f" - {self.translated_title}" if self.translated_title else ""))
         return fulltitle
 
 
