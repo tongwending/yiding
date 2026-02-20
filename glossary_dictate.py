@@ -28,10 +28,10 @@ def load_glossary(file_or_text):
 def update_glossary(glossary, addition):
 
     for term in addition:
-        if term not in glossary:
-                glossary[term] = addition[term]
         if term in glossary:
                 glossary[term][1].update(addition[term][1])
+        else:
+            glossary[term] = addition[term]
 
 # ------------------------------------------------------------------------------------------
 

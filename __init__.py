@@ -6,12 +6,12 @@
 Public API:
 
 - translate("kanripo_code",
-            settings = "my_settings.py",
+            settings = "my_settings.toml",
             translated_title = "my_title",
             output_file = "docx", table = True, punctuation = True)
                  
 - punctuate("kanripo_code",
-            settings = "my_settings.py",
+            settings = "my_settings.toml",
             output_file = "docx")
 
 - continue_translating("my_pickle.pkl",
@@ -21,23 +21,29 @@ Public API:
                        output_file = "docx")
 
 - translate_anew("my_pickle.pkl",
-                 settings = "my_settings.py",
+                 settings = "my_settings.toml",
                  translated_title = "my_title",
                  output_file = "docx", table = True, punctuation = True)
 
 - translate_bulk(["kanripo_code_1", "kanripo_code_2", "kanripo_code_n"],
                  translated_titles = ["title_1", "title_2", "title_n"],
-                 settings = "my_settings.py",
+                 settings = "my_settings.toml",
                  list_of_translated_titles = None,
                  output_file = "docx", table = True, punctuation = True)
 
 - punctuate_bulk(["kanripo_code_1", "kanripo_code_2", "kanripo_code_n"],
-                 settings = "my_settings.py",
+                 settings = "my_settings.toml",
                  output_file = "docx")
 
 - export("my_pickle.pkl",
          punctuation = False, translation = False
          output_file = "docx", table = False)
+         
+- export_log("my_pickle.pkl")
+
+- update_glossary("my_glossary.csv",
+                  "my_pickle.pkl",
+                  output_file = "my_glossary_v2.0.csv")
 """
 
 # ------------------------------------------------------------------------------------------
@@ -51,6 +57,8 @@ from .commands import (
     continue_punctuating,
     translate_anew,
     export,
+    export_log,
+    update_glossary,
 )
 
 __all__ = [
@@ -62,6 +70,8 @@ __all__ = [
     "continue_punctuating",
     "translate_anew",
     "export",
+    "export_log",
+    "update_glossary",
 ]
 
 # ------------------------------------------------------------------------------------------

@@ -2,16 +2,12 @@
 # prompt_gateway
 # ------------------------------------------------------------------------------------------
 
-# Potential imports:
+# imports inside code:
 # from openai import OpenAI
 # from google.genai import Client
 
-from types import SimpleNamespace
-
 from .invoker import Invoker
-from . import default_settings
 from . import instructors
-
 
 # ------------------------------------------------------------------------------------------
 
@@ -21,118 +17,115 @@ NO_API_KEY_ERROR = "Error: No API key in file."
 
 class PromptGateway:
 
-    def __init__(self, settings = None):
+    def __init__(self, settings):
 
-        self.settings = SimpleNamespace(**{
-                k: v for k, v in vars(settings if settings else default_settings).items()
-                if not k.startswith("_")
-                                           })
+        self.settings = settings
+
         self.openai_client = None
         self.google_client = None
+
+        self.invokers = []
+
+        if self.settings["punctuation"]["enabled"]:
         
-        self.punctuator = Invoker(
-                    self.create_client(self.settings.PUNCTUATION_MODEL),
-                    instructors.instruct_punctuation(self.settings),
-                    self.settings.PUNCTUATION_MODEL,
-                    self.settings.PUNCTUATION_REASONING,
-                    self.settings.PUNCTUATION_VERBOSITY,
-                    self.settings.PUNCTUATION_TEMPERATURE,
-                    self.settings.PUNCTUATION_TOP_P)
-        
-        self.punctuation_examinator = Invoker(
-                    self.create_client(self.settings.PUNCTUATION_EXAMINATION_MODEL),
+            self.punctuator = self.create_invoker(
+                self.settings["punctuation"]["punctuation"],
+                instructors.instruct_punctuation(self.settings))
+            self.invokers.append(self.punctuator)
+            
+            if not self.settings["punctuation"]["cross_check"]["enabled"]:
+                self.punctuation_examinator = None
+                self.punctuation_corrector = None
+            else:
+                self.punctuation_examinator = self.create_invoker(
+                    self.settings["punctuation"]["cross_examination"],
                     instructors.instruct_punctuation_examination(),
-                    self.settings.PUNCTUATION_EXAMINATION_MODEL,
-                    self.settings.PUNCTUATION_EXAMINATION_REASONING,
-                    self.settings.PUNCTUATION_EXAMINATION_VERBOSITY,
-                    self.settings.PUNCTUATION_EXAMINATION_TEMPERATURE,
-                    self.settings.PUNCTUATION_EXAMINATION_TOP_P,
                     boolean_response = True)
-        
-        self.punctuation_corrector = Invoker(
-                    self.create_client(self.settings.PUNCTUATION_CORRECTION_MODEL),
-                    instructors.instruct_punctuation_correction(self.settings),
-                    self.settings.PUNCTUATION_CORRECTION_MODEL,
-                    self.settings.PUNCTUATION_CORRECTION_REASONING,
-                    self.settings.PUNCTUATION_CORRECTION_VERBOSITY,
-                    self.settings.PUNCTUATION_CORRECTION_TEMPERATURE,
-                    self.settings.PUNCTUATION_CORRECTION_TOP_P)
+                self.invokers.append(self.punctuation_examinator)
+                
+                self.punctuation_corrector = self.create_invoker(
+                    self.settings["punctuation"]["cross_correction"],
+                    instructors.instruct_punctuation_correction(self.settings))
+                self.invokers.append(self.punctuation_corrector)
 
-        if not self.settings.LLM_GLOSSARY_SELECTION:
-            self.glossary_selector = None
-        else:
-            self.glossary_selector = Invoker(
-                        self.create_client(self.settings.GLOSSARY_SELECTION_MODEL),
-                        instructors.instruct_glossary_selection(self.settings),
-                        self.settings.GLOSSARY_SELECTION_MODEL,
-                        self.settings.GLOSSARY_SELECTION_REASONING,
-                        self.settings.GLOSSARY_SELECTION_VERBOSITY,
-                        self.settings.GLOSSARY_SELECTION_TEMPERATURE,
-                        self.settings.GLOSSARY_SELECTION_TOP_P)
+        if self.settings["translation"]["enabled"]:
+            
+            if not self.settings["translation"]["llm_glossary_selection"]["enabled"]:
+                self.glossary_selector = None
+            else:
+                self.glossary_selector = self.create_invoker(
+                    self.settings["translation"]["glossary_selection"],
+                    instructors.instruct_glossary_selection(self.settings))
+                self.invokers.append(self.glossary_selector)
 
-        self.translator = Invoker(
-                    self.create_client(self.settings.TRANSLATION_MODEL),
-                    instructors.instruct_translation(self.settings),
-                    self.settings.TRANSLATION_MODEL,
-                    self.settings.TRANSLATION_REASONING,
-                    self.settings.TRANSLATION_VERBOSITY,
-                    self.settings.TRANSLATION_TEMPERATURE,
-                    self.settings.TRANSLATION_TOP_P)
+            self.translator = self.create_invoker(
+                    self.settings["translation"]["translation"],
+                    instructors.instruct_translation(self.settings))
+            self.invokers.append(self.translator)
 
-        self.translation_examinator = Invoker(
-                    self.create_client(self.settings.TRANSLATION_EXAMINATION_MODEL),
+            if not self.settings["translation"]["cross_check"]["enabled"]:
+                self.translation_examinator = None
+                self.translation_corrector = None
+            else:
+                self.translation_examinator = self.create_invoker(
+                    self.settings["translation"]["cross_examination"],
                     instructors.instruct_translation_examination(self.settings),
-                    self.settings.TRANSLATION_EXAMINATION_MODEL,
-                    self.settings.TRANSLATION_EXAMINATION_REASONING,
-                    self.settings.TRANSLATION_EXAMINATION_VERBOSITY,
-                    self.settings.TRANSLATION_EXAMINATION_TEMPERATURE,
-                    self.settings.TRANSLATION_EXAMINATION_TOP_P,
                     boolean_response = True)
+                self.invokers.append(self.translation_examinator)
 
-        self.translation_corrector = Invoker(
-                    self.create_client(self.settings.TRANSLATION_CORRECTION_MODEL),
-                    instructors.instruct_translation_correction(self.settings),
-                    self.settings.TRANSLATION_CORRECTION_MODEL,
-                    self.settings.TRANSLATION_CORRECTION_REASONING,
-                    self.settings.TRANSLATION_CORRECTION_VERBOSITY,
-                    self.settings.TRANSLATION_CORRECTION_TEMPERATURE,
-                    self.settings.TRANSLATION_CORRECTION_TOP_P)
+                self.translation_corrector = self.create_invoker(
+                    self.settings["translation"]["cross_correction"],
+                    instructors.instruct_translation_correction(self.settings))
+                self.invokers.append(self.translation_corrector)
 
-        self.glossary_extractor = Invoker(
-                    self.create_client(self.settings.GLOSSARY_EXTRACTION_MODEL),
-                    instructors.instruct_glossary_extraction(self.settings),
-                    self.settings.GLOSSARY_EXTRACTION_MODEL,
-                    self.settings.GLOSSARY_EXTRACTION_REASONING,
-                    self.settings.GLOSSARY_EXTRACTION_VERBOSITY,
-                    self.settings.GLOSSARY_EXTRACTION_TEMPERATURE,
-                    self.settings.GLOSSARY_EXTRACTION_TOP_P)
-                      
-# ------------------------------------------------------------------------------------------
+            self.glossary_extractor = self.create_invoker(
+                    self.settings["translation"]["glossary_extraction"],
+                    instructors.instruct_glossary_extraction(self.settings))
+            self.invokers.append(self.glossary_extractor)
 
+        self.log = ""
+        for inv in self.invokers:
+            self._update_log(f"------------\n{inv.instructions}")
+    
+    def _update_log(self, text):
+        text = f"\n{text}\n"
+        self.log += text
+
+    def create_invoker(self, x, instructions, boolean_response = False):
+        return Invoker(
+                    self.create_client(x["model"]),
+                    instructions,
+                    x["model"],
+                    (x["reasoning"] if x["reasoning"] is not False else None),
+                    (x["verbosity"] if x["verbosity"] is not False else None),
+                    (x["temperature"] if x["temperature"] is not False else None),
+                    (x["top_p"] if x["top_p"] is not False else None),
+                    boolean_response)
+                             
     def create_client(self, model):
         
         if model[0:3] == "gpt":
             if self.openai_client is None:
-                if self.settings.OPEN_AI_API_KEY.lower().endswith(".txt"):
-                    with open(self.settings.OPEN_AI_API_KEY,"r",encoding="utf-8") as f:
+                if self.settings["api_serial_keys"]["openai"].lower().endswith(".txt"):
+                    with open(self.settings["api_serial_keys"]["openai"],"r",encoding="utf-8") as f:
                         api_key = f.read().strip()
                         if not api_key:
                             raise ValueError(NO_API_KEY_ERROR)
                 else:
-                    api_key = self.settings.OPEN_AI_API_KEY
+                    api_key = self.settings["api_serial_keys"]["openai"]
                 from openai import OpenAI
                 self.openai_client = OpenAI(api_key = api_key)
             client = self.openai_client
 
         elif model[0:6] == "gemini":
             if self.google_client is None:
-                if self.settings.GOOGLE_API_KEY.lower().endswith(".txt"):
-                    with open(self.settings.GOOGLE_API_KEY,"r",encoding="utf-8") as f:
+                if self.settings["api_serial_keys"]["google"].lower().endswith(".txt"):
+                    with open(self.settings["api_serial_keys"]["google"],"r",encoding="utf-8") as f:
                         api_key = f.read().strip()
                         if not api_key:
                             raise ValueError(NO_API_KEY_ERROR)
                 else:
-                    api_key = self.settings.GOOGLE_API_KEY
+                    api_key = self.settings["api_serial_keys"]["google"]
                 from google.genai import Client
                 self.google_client = Client(api_key = api_key)
             client = self.google_client
@@ -141,8 +134,6 @@ class PromptGateway:
             raise ValueError(f"Unknown model in settings: {model}")
 
         return client
-
-# ------------------------------------------------------------------------------------------
 
     def __getstate__(self):
         """Return picklable state (drop the LLM clients)."""
@@ -160,16 +151,7 @@ class PromptGateway:
         self.openai_client = None
         self.google_client = None
         # re-bind every invoker to the client creating new clients on the way:
-        for inv in (
-            self.punctuator,
-            self.punctuation_examinator,
-            self.punctuation_corrector,
-            *((self.glossary_selector,) if self.glossary_selector else ()),
-            self.translator,
-            self.translation_examinator,
-            self.translation_corrector,
-            self.glossary_extractor,
-        ):
+        for inv in self.invokers:
             inv.bind_client(self.create_client(inv.model))
 
 # ------------------------------------------------------------------------------------------

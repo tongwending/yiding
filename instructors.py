@@ -13,13 +13,13 @@ SCOPE
 - Punctuate ONLY the content under "Text to be punctuated:". Do not alter the preceding context.
 
 STRUCTURE WITH <break>
-- Insert <break> ONLY where it truly reflects structure: new paragraphs, stanzas, or distinct text blocks.
+- Insert <break> ONLY where it truly reflects structure: new paragraphs or distinct text blocks.
 - Break when the text’s indentation/format shifts, or when a quotation/poem/block is inserted.
 - Insert <break> before AND after headers and tail titles.
 - If the text is verse:
-  - Put each verse on its own line.
-  - Insert <break> after each stanza (stanza is a group of verses).
-  - Don't break between the verses; only between the stanzas.
+  - Put each verse on its own line (using newline, not <break>).
+  - If the versed text has 10 or more verses, divide it into stanzas of 3 or more verses each.  
+  - Don't insert <break> between the verses; break only between the stanzas.
 
 NEWLINES / LINEATION
 - Be mindful of existing newlines, but do NOT mechanically preserve them.
@@ -29,7 +29,7 @@ NEWLINES / LINEATION
 PARENTHESES (SMALL-CHARACTER NOTES)
 - Parentheses contain glosses/commentary.
 - Keep ASCII parentheses exactly as they are: "(" and ")" (do not convert to fullwidth).
-- Punctuate or not inside the parethesis according to the context.
+- Punctuate or not inside the parentheses according to the context.
 - Punctuate surrounding text appropriately while keeping the parenthetical content in place.
 
 CHARACTER INTEGRITY
@@ -46,7 +46,7 @@ EDGE CASE
 CONTINUATION NOTE
 - The provided text may end abruptly; do not “complete” it. Punctuate as-is, even if the final block is incomplete.
 
-PUNCTUATION GUIDELINES{settings.PUNCTUATION_GUIDELINES}
+PUNCTUATION GUIDELINES{settings["punctuation"]["guidelines"]}
 """
 
 # ------------------------------------------------------------------------------------------
@@ -77,8 +77,8 @@ DO NOT
 - Do not flag inconsistencies unless you can identify a repeated (or near-repeated) string handled differently.
 
 OUTPUT (STRICT JSON)
-- Return ONLY a valid JSON object with exactly one key: "answer".
-- "answer" must be a boolean:
+- Return ONLY a valid JSON object with exactly one key: "b".
+- "b" must be a boolean:
   - true  = there is at least one clear inconsistency as defined above
   - false = no clear inconsistencies
 
@@ -123,13 +123,13 @@ OUTPUT
 EDGE CASE
 - If the user provides an empty string OR a single underscore character "_", output exactly "_" and nothing else.
 
-STYLE GUIDELINES (MUST FOLLOW){settings.PUNCTUATION_GUIDELINES}
+STYLE GUIDELINES (MUST FOLLOW){settings["punctuation"]["guidelines"]}
 """
 
 # ------------------------------------------------------------------------------------------
 
 def instruct_glossary_selection (settings):
-    return f"""You will be given a segment of Chinese text. Select the Chinese terms that will be needed to translate the text into {settings.LANGUAGE}.
+    return f"""You will be given a segment of Chinese text. Select the Chinese terms that will be needed to translate the text into {settings["translation"]["language"]}.
 
 TASK
 - Extract and list the key Chinese terms that should appear in a translation glossary for this segment.
@@ -165,10 +165,12 @@ SELECTION GUIDELINES
 # ------------------------------------------------------------------------------------------
 
 def instruct_translation (settings):
-    return f"""Translate the given Chinese segment into {settings.LANGUAGE}.
+    return f"""Translate the given Chinese segment into {settings["translation"]["language"]}.
 
 CONTEXT AND SCOPE
-- You will be given a preceding segment and its translation for continuity.
+- You might be given a preceding segment and its translation for context.
+- You might be given the title and translation of the source scripture for context.
+- Keep a consistent tone, vocabulary, and style with the preceding translation and the scripture's title.
 - Keep a consistent tone and style with the preceding translation.
 - Translate ONLY the portion labeled "Text to be translated:".
 
@@ -186,7 +188,8 @@ CONTENT RULES
 - Do not add explanations, commentary, or notes.
 - Do not italicize or bold.
 - If a character is ⬤, it means it is an unknown character. Interpret it in its context.
-- If the text is a short and unpunctuated, it is a title or header.
+- If the text is short and unpunctuated, it is a title or header.
+- If there are different versions of the same character, translate them in the same way.
 
 OUTPUT
 - Output ONLY the translation of "Text to be translated:" with no extra text.
@@ -194,7 +197,13 @@ OUTPUT
 EDGE CASE
 - If the user provides an empty string OR a single underscore character "_", output exactly "_" and nothing else.
 
-STYLISTIC GUIDELINES (MUST FOLLOW){settings.TRANSLATION_GUIDELINES}
+STYLISTIC GUIDELINES (MUST FOLLOW){settings["translation"]["guidelines"]}
+
+GLOSSARY RULES
+- Translate using the glossary provided below when applicable.
+- If a term's translation options are not applicable, do not force them.
+
+GLOSSARY:
 """
 
 # ------------------------------------------------------------------------------------------
@@ -204,15 +213,19 @@ INCONSISTENCIES = """
 - Idioms translated differently.
 - Phrases translated differently.
 - Verbatim (or near-verbatim) sentences or quotes translated differently.
+- Different versions of the same Chinese character being translated differently.
 """
 
 def instruct_translation_examination(settings):
-    return f"""You will be given Segment A and Segment B (Chinese), and their corresponding {settings.LANGUAGE} translations (A' and B').
+    return f"""You will be given Segment A and Segment B (Chinese), and their corresponding {settings["translation"]["language"]} translations (A' and B').
 
 TASK
 - Determine whether B' is inconsistent with A' according to the inconsistency definition below.
 
 DEFINITION: INCONSISTENCIES{INCONSISTENCIES}
+
+CONTEXT
+- You might be given the title and translation of the source scripture for context.
 
 FOCUS
 - Focus only on translation/rendering inconsistencies, not style.
@@ -221,10 +234,11 @@ FOCUS
 - Compare A' and B' for how they render the same terms, idioms, phrases, sentences, or quotations.
 - The Chinese segments are different overall; do not flag them as inconsistent simply because they are not identical.
 - Do NOT judge correctness against the Chinese; this is translation-to-translation consistency checking.
+- If B' contains inconsistencies when compared with the translated scripture title, then consider B' as inconsistent.
 
 OUTPUT (STRICT JSON)
-- Return ONLY a valid JSON object with exactly one key: "answer".
-- "answer" must be a boolean:
+- Return ONLY a valid JSON object with exactly one key: "b".
+- "b" must be a boolean:
   - true  = at least one clear inconsistency as defined above
   - false = no clear inconsistencies
 
@@ -234,7 +248,7 @@ Return no other keys, text, markdown, or code fences.
 # ------------------------------------------------------------------------------------------
 
 def instruct_translation_correction(settings):
-    return f"""You will be given Segment A and Segment B (Chinese), and their corresponding {settings.LANGUAGE} translations (A' and B').
+    return f"""You will be given Segment A and Segment B (Chinese), and their corresponding {settings["translation"]["language"]} translations (A' and B').
 
 PREMISE
 - The translation of Segment B (B') contains one or more inconsistencies compared to the translation of Segment A (A').
@@ -244,12 +258,16 @@ TASK
 
 DEFINITION: INCONSISTENCIES{INCONSISTENCIES}
 
+CONTEXT
+- You might be given the title and translation of the source scripture for context.
+
 FOCUS
 - Focus only on translation/rendering inconsistencies, not style.
 - Ignore trivial differences (e.g., an article or a pronoun here and there).
 - Do not change renderings that are clearly justified by context.
 - Compare A' and B' for how they render the same terms, idioms, phrases, sentences, or quotations.
 - Do NOT judge correctness against the Chinese; this is translation-to-translation consistency correction.
+- If B' contains inconsistencies when compared to the translated scripture title, make the appropriate changes to smooth them.
 
 STRUCTURE
 - Segment B is a single block (paragraph/stanza/other block): do NOT break or restructure it.
@@ -264,8 +282,7 @@ CORRECTION RULES
 - Do not add explanations, commentary, or notes.
 - Do not italicize or bold.
 - If a character is ⬤, it means it is an unknown character. Interpret it in its context.
-- If the text is a short and unpunctuated, it is a title or header.
-
+- If the text is short and unpunctuated, it is a title or header.
 
 OUTPUT
 - Return ONLY the minimally corrected translation of Segment B (corrected B').
@@ -274,25 +291,25 @@ OUTPUT
 EDGE CASE
 - If the user provides an empty string OR a single underscore character "_", output exactly "_" and nothing else.
 
-STYLE GUIDELINES (MUST FOLLOW){settings.TRANSLATION_GUIDELINES}
+STYLE GUIDELINES (MUST FOLLOW){settings["translation"]["guidelines"]}
 """
 
 # ------------------------------------------------------------------------------------------
 
 def instruct_glossary_extraction(settings):
-    return f"""You will be given a Chinese text segment and its corresponding {settings.LANGUAGE} translation.
+    return f"""You will be given a Chinese text segment and its corresponding {settings["translation"]["language"]} translation.
 
 TASK
-- Extract a glossary of key Chinese terms from the Chinese segment and map each term to how it is translated in the provided {settings.LANGUAGE} translation.
+- Extract a glossary of key Chinese terms from the Chinese segment and map each term to how it is translated in the provided {settings["translation"]["language"]} translation.
 - Provide accented Pinyin for each Chinese term.
 
 OUTPUT FORMAT (EXACT)
 - Output ONLY a list of lines in this exact format:
-Chinese term (accented Pinyin) = {settings.LANGUAGE} translation
+Chinese term (accented Pinyin) = {settings["translation"]["language"]} translation
 - One entry per line. No bullets, numbering, headers, or extra text.
 
 TRANSLATION SOURCE RULES
-- Do NOT invent or improve translations. Use ONLY the renderings that appear in the provided {settings.LANGUAGE} translation.
+- Do NOT invent or improve translations. Use ONLY the renderings that appear in the provided {settings["translation"]["language"]} translation.
 - If the same Chinese term is translated in multiple ways in the provided translation, list all those renderings separated by commas.
 - Separate multiple meanings/uses with commas (never use slashes).
 - Do not include translation variants that are not present in the provided translation.
@@ -317,7 +334,7 @@ PINYIN RULES
 - Use correct umlauts where required (e.g., ü).
 
 NORMALIZATION RULES
-- Give the {settings.LANGUAGE} translation in singular form even if the provided translation uses plural (except when a term is inherently plural).
+- Give the {settings["translation"]["language"]} translation in singular form even if the provided translation uses plural (except when a term is inherently plural).
 - Capitalize only proper names.
 - Do not include articles.
 """

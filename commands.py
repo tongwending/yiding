@@ -3,12 +3,14 @@
 # ------------------------------------------------------------------------------------------
 
 import pickle
-import importlib.util
-from importlib.machinery import SourceFileLoader
+import os
+import tomllib
+from importlib.resources import files
 
 from .kanripo_text import KanripoText
 from .prompt_gateway import PromptGateway
 from .workflow_orchestrator import WorkflowOrchestrator
+from . import glossary_dictate
 from . import ding
 
 # ------------------------------------------------------------------------------------------
@@ -34,9 +36,11 @@ def translate(kanripo_code, settings = None,
               translated_title = None,
               output_file = "docx", table = True, punctuation = True):
 
+    settings = _load_settings(settings) if settings else _load_default_settings()
+
     # initialize the three main objects
     text = KanripoText(kanripo_code)
-    gate = PromptGateway(settings = _load_settings(settings) if settings else None)
+    gate = PromptGateway(settings)
     orchestrator = WorkflowOrchestrator(text, gate)
 
     if translated_title:
@@ -68,9 +72,12 @@ def translate_anew(filename, settings = None,
                    translated_title = None,
                    output_file = "docx", table = True, punctuation = True):
 
+    settings = _load_settings(settings) if settings else _load_default_settings()
+    settings["punctuation"]["enabled"] = False
+
     old_orchestrator = _load_pickle(filename)
     text = old_orchestrator.text
-    gate = PromptGateway(settings = _load_settings(settings) if settings else None)
+    gate = PromptGateway(settings)
     orchestrator = WorkflowOrchestrator(text, gate)
 
     orchestrator.text.empty_translation()
@@ -98,9 +105,12 @@ def punctuate_bulk(list_of_kanripo_codes, settings = None, output_file = "docx")
 
 def punctuate(kanripo_code, settings = None, output_file = "docx"):
 
+    settings =  _load_settings(settings) if settings else _load_default_settings()
+    settings["translation"]["enabled"] = False
+
     # initialize the three main objects
     text = KanripoText(kanripo_code)
-    gate = PromptGateway(settings = _load_settings(settings) if settings else None)
+    gate = PromptGateway(settings)
     orchestrator = WorkflowOrchestrator(text, gate)
     
     # start the process
@@ -121,6 +131,8 @@ def continue_punctuating(filename, output_file = "docx"):
                   output_file = output_file, table = False)
 
 # ------------------------------------------------------------------------------------------
+# i/o
+# ------------------------------------------------------------------------------------------
 
 def export(filename, punctuation = False, translation = False,
            output_file = "docx", table = False):
@@ -130,7 +142,25 @@ def export(filename, punctuation = False, translation = False,
                   output_file = output_file, table = table)
 
 # ------------------------------------------------------------------------------------------
-# i/o
+
+def export_log(filename):
+    orchestrator = _load_pickle(filename)
+    title, extension = os.path.splitext(filename)
+    output_file = title + "_LOG.txt"
+    
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(orchestrator.log)
+
+# ------------------------------------------------------------------------------------------
+
+def update_glossary(glossaryfile, picklefile, output_file = None):
+    base_glossary = glossary_dictate.load_glossary(glossaryfile)
+    orchestrator = _load_pickle(picklefile)
+    glossary_dictate.update_glossary(base_glossary, orchestrator.text.translation_glossary)
+
+    glossary_dictate.glossary_to_csv(base_glossary,
+                                    (output_file if output_file else glossaryfile))
+    
 # ------------------------------------------------------------------------------------------
 
 def _load_pickle(filename):
@@ -138,10 +168,11 @@ def _load_pickle(filename):
         return pickle.load(f)
 
 def _load_settings(filename):
-    loader = SourceFileLoader("loaded_settings", filename)
-    spec = importlib.util.spec_from_loader("loaded_settings", loader)
-    module = importlib.util.module_from_spec(spec)
-    loader.exec_module(module)
-    return module
+    with open(filename, "r", encoding="utf-8") as f:
+        return tomllib.loads(f.read())
+
+def _load_default_settings() -> dict:
+    with (files(__package__) / "default_settings.toml").open("rb") as f:
+        return tomllib.load(f)
     
 # ------------------------------------------------------------------------------------------

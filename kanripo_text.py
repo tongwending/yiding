@@ -15,7 +15,6 @@ PARSING_ERROR_MESSAGE = "nonexistent or unknown Kanripo documentation"
 
 class KanripoText(SegmentedText):
     
-
     def __init__(self, kanripo_code: str, glosses_on = True):
 
         super().__init__()
@@ -23,7 +22,7 @@ class KanripoText(SegmentedText):
         self.kanripo_code = kanripo_code
         self.glosses_on = glosses_on
 
-        self.fetch_from_kanripo() # fills title, properties, segments, page_labels
+        self.fetch_and_parse() # fills title, properties, segments, page_labels
 
         for x in self.segments:
             self.page_lines.append(x.count("\n"))
@@ -34,16 +33,17 @@ class KanripoText(SegmentedText):
                 self.segments[i] = segment
                 self.glosses.append(glosslist)
                                     
-
     def full_title(self): # needs reworkings
         fulltitle = (f"{self.kanripo_code} - {self.original_title}"\
                      + (f" - {self.translated_title}" if self.translated_title else ""))
         return fulltitle
 
+    def _update_log(self, text):
+        self.log += f"{text}\n"; print(text)
 
-    def fetch_from_kanripo(self):
+    def fetch_and_parse(self):
 
-        raw_juan = fetch_segments(self.kanripo_code)
+        raw_juan = self.fetch_segments()
 
         if not raw_juan:
             raise ValueError(f"Error: Code {self.kanripo_code} is {PARSING_ERROR_MESSAGE}.")
@@ -59,45 +59,46 @@ class KanripoText(SegmentedText):
                         self.segments.append(sectioned_juan[j])
                         self.page_labels.append(page[j])
 
-# ------------------------------------------------------------------------------------------
+    def fetch_segments(self):
 
-def fetch_segments(kanripo_code):
+        list_of_juan = []
+        self._update_log(f"Kanripo code: {self.kanripo_code}\n")
+        KANRIPO_ERROR = "404: Not Found"
 
-    list_of_juan = []
-    KANRIPO_ERROR = "404: Not Found"
-
-    i = 0
-    misfetches = 0
-    while True:
-        
-        kanripo_juan_code = f"{kanripo_code}_{i:03d}"
-        print(kanripo_juan_code)
-        
-        fetched_juan = kanripo.get_result_file(kanripo_juan_code)
-        if not isinstance(fetched_juan, str):    # must be string
-            raise ValueError(f"Error: Something wrong, {PARSING_ERROR_MESSAGE}.")
-
-        print("Fetched text:\n" + fetched_juan)
-
-        # Should loop end when there are no more valid fetches.
-        if fetched_juan == KANRIPO_ERROR:
-            break
-        
-        if "<pb:" in fetched_juan:
-            list_of_juan.append(fetched_juan)
-            misfetches = 0
-        else:
-            misfetches += 1
-            # Maybe 2 fetches could be empty because of content fetches (but 3 is too much).
-            if misfetches == 3:
-                raise ValueError(f"Error: Something is {PARSING_ERROR_MESSAGE}.")
-        i += 1
+        i = 0
+        misfetches = 0
+        while True:
             
-    for i in range(0,len(list_of_juan)):
-        list_of_juan[i] = list_of_juan[i].replace("¶", "")
-        
-    return list_of_juan
+            kanripo_juan_code = f"{self.kanripo_code}_{i:03d}"
+            self._update_log(f"\nFetching {kanripo_juan_code}\n")
+            
+            fetched_juan = kanripo.get_result_file(kanripo_juan_code)
+            if not isinstance(fetched_juan, str):    # must be string
+                raise ValueError(f"Error: Something wrong, {PARSING_ERROR_MESSAGE}.")
 
+            self._update_log(f"{fetched_juan}\n")
+
+            # Should loop end when there are no more valid fetches.
+            if fetched_juan == KANRIPO_ERROR:
+                break
+            
+            if "<pb:" in fetched_juan:
+                list_of_juan.append(fetched_juan)
+                misfetches = 0
+            else:
+                misfetches += 1
+                # Maybe 2 fetches could be empty because of content fetches (but 3 is too much).
+                if misfetches == 3:
+                    raise ValueError(f"Error: Something is {PARSING_ERROR_MESSAGE}.")
+            i += 1
+                
+        for i in range(0,len(list_of_juan)):
+            list_of_juan[i] = list_of_juan[i].replace("¶", "")
+            
+        return list_of_juan
+
+# ------------------------------------------------------------------------------------------
+# parsers
 # ------------------------------------------------------------------------------------------
 
 def slice_into_sections(text):
