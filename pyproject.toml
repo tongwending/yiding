@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yiding"
+version = "0.1.0b1"
+description = "Yiding: An LLM-assisted pipeline for punctuating and translating pre-modern Chinese texts."
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.11"
+
+authors = [
+  { name = "Konstantinos Karampakakis", email = "kkaramp@hawaii.edu"  },
+  { name = "J. E. E. Pettit", email = "jeep@hawaii.edu"  }
+]
+
+dependencies = [
+  "openai>=2.0.0",
+  "google-genai>=1.10.0",
+  "python-docx>=1.0.0",
+  "kanripo",
+]
+
+[project.scripts]
+yiding = "yiding.__main__:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7",
+  "ruff>=0.4",
+  "mypy>=1.8",
+]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["yiding*"]
+
+[tool.setuptools.package-data]
+yiding = [
+  "default_settings.toml",
+  "settings_template.toml",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

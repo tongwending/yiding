@@ -1,0 +1,31 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+*.key
+*.pem
+
+# Logs
+*.log
+
+# Test / local output files
+*.pkl
+
+# Editor / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
