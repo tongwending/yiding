@@ -1,0 +1,121 @@
+# -----------------------------------------------------------------------------------------
+# api_settings
+# -----------------------------------------------------------------------------------------
+
+[api_serial_keys] # actual serial numbers or the TXT file containing them
+openai = "openai_sk.txt"    
+google = "google_sk.txt"
+
+# -----------------------------------------------------------------------------------------
+# punctuation_settings
+# -----------------------------------------------------------------------------------------
+
+[punctuation]
+enabled = true
+
+    guidelines = """
+- Keep referenced scripture titles intact; do not punctuate inside them.
+- Use 「」 (or 『』) for direct speech/quotations; when appropriate, introduce the quote with ：.
+- Use ； (分號 fēnhào) to separate parallel units that are related but already internally complex, except when clauses are too short or too long for a semicolon to read well.
+- Use 、 (顿号 dùnhào) to separate list items.
+- Keep honorific chains intact; do not split them with punctuation.
+- If there is a list of terms, titles or headers, use bullet points ● (○ for sublists) and group them together as a unit.
+- Avoid attributive noun constructions (N+N) in the translation unless the N+N form is a common/established term or the glossary specifies it.
+"""
+    facsimile_span = 1
+    punctuation_span = 3 # number of previous punctuated segments in prompts
+    max_unsegmented_span = 1000 # maximum characters allowed without segment break
+    max_punctuation_attempts = 7
+
+    [punctuation.punctuation]
+    model = "gpt-5.2"
+    reasoning = "low"
+    verbosity = false
+    temperature = false
+    top_p = false
+
+    [punctuation.cross_check]
+    enabled = true
+
+        [punctuation.cross_examination]
+        model = "gemini-2.5-flash"
+        reasoning = false
+        verbosity = false
+        temperature = 0
+        top_p = false
+
+        [punctuation.cross_correction]
+        model = "gpt-5.2"
+        reasoning = "low"
+        verbosity = false
+        temperature = false
+        top_p = false
+  
+# -----------------------------------------------------------------------------------------
+# translation_settings
+# -----------------------------------------------------------------------------------------
+
+[translation]
+enabled = true
+
+    guidelines = """
+- The translation should be easy flowing, readable, and smooth.
+- Favor translating nouns in the singular unless context clearly requires plural.
+- Follow the Chinese text punctuation as faithfully as possible.
+- When referencing the title of a scripture book, use single quotation marks: ‘ ’.
+- When quoting speech or a passage, use double quotation marks: “ ”.
+- Do not start paragraphs with indentation.
+- If the text is in verses (e.g., poem/song), keep the verse structure; each verse should be on its own line.
+- For titles and headers, use capitalization appropriate for a book/text title.
+"""
+    language = "English"
+    glossary = "my_glossary_updated.csv"
+    translation_span = 2
+
+    [translation.translation]
+    model = "gpt-5.2"
+    reasoning = "medium"
+    verbosity = "medium"
+    temperature = false
+    top_p = false
+
+    [translation.glossary_extraction]
+    model = "gpt-5.2"
+    reasoning = "none"
+    verbosity = "medium"
+    temperature = 0
+    top_p = false
+
+    [translation.cross_check]
+    enabled = true
+
+        [translation.cross_examination]
+        model = "gemini-2.5-flash"
+        reasoning = false
+        verbosity = false
+        temperature = 0
+        top_p = false
+
+        [translation.cross_correction]
+        model = "gpt-5.2"
+        reasoning = "medium"
+        verbosity = "medium"
+        temperature = false
+        top_p = false
+
+    [translation.llm_glossary_selection]
+    enabled = false 
+
+        [translation.glossary_selection]
+        model = "gpt-5.2"
+        reasoning = "none"
+        verbosity = "high"
+        temperature = false
+        top_p = 1
+
+# -----------------------------------------------------------------------------------------
+# GPT reasoning options: "none" | "low" | "medium" | "high"
+# Gemini reasoning (aka thinking) options: "minimal" | "low" | "medium" | "high"
+# GPT verbosity option: "low" | "medium" | "high"
+# temperature options: 0 to 2 (1 is the default)
+# top p options: 0 to 1
