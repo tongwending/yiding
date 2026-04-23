@@ -27,6 +27,7 @@ single one-shot prompt. In the default setup, it:
 10. Extract glossary entries from the translated output (LLM call).
 11. Auto-save progress to a PKL file after major steps.
 12. Export punctuated and/or translated text to DOCX.
+<img width="960" height="540" alt="Yiding Diagram(1)" src="https://github.com/user-attachments/assets/81ec70ea-e15e-4f3b-aafd-e661072bd642" />
 
 ======================================================================
 INSTALLATION REQUIREMENTS
