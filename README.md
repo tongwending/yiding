@@ -1,7 +1,7 @@
 Yiding 譯鼎
 An AI-assisted punctuation and translation pipeline for pre-modern Chinese texts
 
-======================================================================
+===
 INTRODUCTION
 
 Yiding 譯鼎 is a Python package for:
