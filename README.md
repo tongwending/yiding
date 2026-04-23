@@ -1,9 +1,9 @@
 Yiding 譯鼎
 An AI-assisted punctuation and translation pipeline for pre-modern Chinese texts
 
+
 INTRODUCTION
 ========================
-
 Yiding 譯鼎 is a Python package for:
 a) fetching pre-modern Daoist texts from Kanseki Repository through the Kanripo API
    wrapper,
@@ -28,10 +28,9 @@ single one-shot prompt. In the default setup, it:
 12. Export punctuated and/or translated text to DOCX.
 <img width="960" height="540" alt="Yiding Diagram(1)" src="https://github.com/user-attachments/assets/81ec70ea-e15e-4f3b-aafd-e661072bd642" />
 
-======================================================================
-INSTALLATION REQUIREMENTS
-======================================================================
 
+INSTALLATION REQUIREMENTS
+========================
 A) Python 3.11 or newer
 
 	To install Python (if not already installed):
@@ -49,7 +48,6 @@ A) Python 3.11 or newer
 
 	(Note: On some systems, you may need to use:  python3 --version)
 
-
 B) Python packages required
 
 	The following Python packages must be installed:
@@ -66,10 +64,8 @@ B) Python packages required
 	(Note: Skip openai or google-genai if you won't use the respective models.)
 
 
-======================================================================
 YIDING INSTALLATION
-======================================================================
-
+========================
 To install Yiding:
 
     1. Download or clone the Yiding repository to your computer:
@@ -106,11 +102,10 @@ To install Yiding:
 	
 	Note: On some systems, you may need to use: 
 	   python3 -m pip install .
-		
-======================================================================
-API KEYS REQUIREMENTS
-======================================================================
 
+		
+API KEYS REQUIREMENTS
+========================
 YiDing requires API access for the language models you choose to use:
 
     - OpenAI API key (required if you use OpenAI models)
@@ -124,10 +119,9 @@ You must obtain these keys yourself from OpenAI and/or Google:
 
 (Note: The API keys are stored in a settings.toml or txt file. See below.)
 
-======================================================================
-WORKING FOLDER SET UP
-======================================================================
 
+WORKING FOLDER SET UP
+========================
 To operate Yiding, you need to set up a working folder with your settings preferences.
 (You can have many working folders with different settings.)
 
@@ -139,10 +133,9 @@ To create a working folder:
 	d) Open the newly created settings.toml in the working folder
 	e) Change the settings according to your preferences (see below)
 
-======================================================================
-SETTINGS MANAGEMENT
-======================================================================
 
+SETTINGS MANAGEMENT
+========================
 Yiding is controlled by a TOML settings file, 
 containing three main parts:
 	A) API settings
@@ -242,10 +235,9 @@ C) translation_settings
 		[translation.glossary_selection]
 		* Define the model and its parameters for glossary selection; see below.
 
-======================================================================
-MODEL SELECTION AND PROMPTING PARAMETERS
-======================================================================
 
+MODEL SELECTION AND PROMPTING PARAMETERS
+========================
 Yiding allows the use of a different LLM model and its parameters for each prompting job.
 The different prompting jobs are:
 	- punctuation
@@ -279,10 +271,9 @@ The user must define the LLM model and its parameters for each job (if the job i
 				the provider defines the options.
 				If false, the parameter will be ignored (default)
 
-======================================================================
-GLOSSARY CSV FILE
-======================================================================
 
+GLOSSARY CSV FILE
+========================
 Yiding allows the use of a predefined glossary CSV file (not required but recommended).
 
 The glossary CSV file should be located in the working folder
@@ -299,10 +290,9 @@ For example:
 In other words, the first column of the CSV file must have the Chinese term,
 the second column must have the pinyin, and the rest should have the translation options.
 
-======================================================================
-HOW TO OPERATE YIDING
-======================================================================
 
+HOW TO OPERATE YIDING
+========================
 Yiding can be run from the command line of the working folder
 (alternatively, its commands can be used in Python code; see below)
 
@@ -343,10 +333,9 @@ In other words:
 - then add the needed file name or Kanripo code
 - then add optional extra settings such as --settings or --table
 
-======================================================================
-CLI COMMANDS
-======================================================================
 
+CLI COMMANDS
+========================
 translate
     Translate a single Kanripo text.
 
@@ -461,10 +450,9 @@ update-glossary
     Optional arguments:
         -o, --output-file PATH
 
-======================================================================
-PYTHON API
-======================================================================
 
+PYTHON API
+========================
 YiDing also exposes the above commands in a simple Python API:
 
     from yiding import (
@@ -481,10 +469,9 @@ YiDing also exposes the above commands in a simple Python API:
         update_glossary,
     )
 
-======================================================================
-IMPORTANT CURRENT LIMITATIONS
-======================================================================
 
+IMPORTANT CURRENT LIMITATIONS
+========================
 - DOCX is the only implemented export format at the moment.
   The CLI accepts --output-file, but the actual exporter currently
   handles only "docx".
@@ -499,10 +486,9 @@ IMPORTANT CURRENT LIMITATIONS
   exporter. If that font is unavailable on your system, Word may
   substitute another font.
 
-======================================================================
-COMMON ERRORS
-======================================================================
 
+COMMON ERRORS
+========================
 Possible errors include:
 
 - Error: No API key in file.
