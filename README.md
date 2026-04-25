@@ -31,7 +31,7 @@ single one-shot prompt. In the default setup, it:
 
 INSTALLATION REQUIREMENTS
 ========================
-A) Python 3.11 or newer
+Python 3.11 or newer
 
 	To install Python (if not already installed):
 	
@@ -47,21 +47,6 @@ A) Python 3.11 or newer
 		python --version
 
 	(Note: On some systems, you may need to use:  python3 --version)
-
-B) Python packages required
-
-	The following Python packages must be installed:
-
-	- python-docx
-	- kanripo
-	- openai (only if OpenAI models are used)
-	- google-genai (only if Google models are used)
-	
-	Install the required packages with the following command line:
-
-		pip install openai google-genai python-docx kanripo
-	
-	(Note: Skip openai or google-genai if you won't use the respective models.)
 
 
 YIDING INSTALLATION
@@ -100,8 +85,14 @@ To install Yiding:
 
            python -m pip install .
 	
-	Note: On some systems, you may need to use: 
+	Note 1: On some systems, you may need to use: 
 	   python3 -m pip install .
+
+	Note 2: The command will also install:
+				- python-docx
+				- kanripo
+				- openai (only if OpenAI models are used)
+				- google-genai (only if Google models are used)
 
 		
 API KEYS REQUIREMENTS
