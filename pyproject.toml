@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yiding"
-version = "0.1.0b1"
-description = "Yiding: An LLM-assisted pipeline for punctuating and translating pre-modern Chinese texts."
+version = "0.1.0"
+description = "Working pre-release research prototype for AI-assisted punctuation and translation of pre-modern Chinese texts from Kanripo"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 requires-python = ">=3.11"
