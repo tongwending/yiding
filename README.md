@@ -1,10 +1,14 @@
 Yiding 譯鼎
 An AI-assisted punctuation and translation pipeline for pre-modern Chinese texts
 
+STATUS
+========================
+**Pre-release research prototype.**
+Yiding 譯鼎 is functional and can run its core punctuation, translation, glossary, consistency-checking, and DOCX export workflow. It remains under active development and is not yet a stable production release.
 
 INTRODUCTION
 ========================
-Yiding 譯鼎 is a Python package for:
+Yiding 譯鼎 is a working pre-release Python package for:
 a) fetching pre-modern Daoist texts from Kanseki Repository through the Kanripo API
    wrapper,
 b) calling LLM models to punctuate, translate, check consistency, and extract 
@@ -94,7 +98,19 @@ To install Yiding:
 				- openai (only if OpenAI models are used)
 				- google-genai (only if Google models are used)
 
+MINIMAL QUICKSTART
+========================
+After installation, create a working folder and run:
+		yiding get-settings
 		
+Edit settings.toml with the required API keys and model settings (see API KEYS REQUIREMENTS and SETTINGS MANAGEMENT below).
+Then run, for example:
+		yiding translate KR5h0008
+
+Yiding will fetch the text, process it according to the settings, autosave progress, and export the result to DOCX.
+(For in depth instructions, see HOW TO OPERATE YIDING below).
+
+
 API KEYS REQUIREMENTS
 ========================
 YiDing requires API access for the language models you choose to use:
