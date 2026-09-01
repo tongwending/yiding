@@ -43,7 +43,8 @@ class SegmentedText:
         self.translation_i = 0
         self.log = ""
 
-        self.is_punctuated = False        
+        self.is_structured = False # True means it is divided into meaningful sections.
+        self.is_punctuated = False      
                                     
     def full_title(self):
         fulltitle = (self.original_title if self.original_title else "Untitled")\
@@ -56,6 +57,9 @@ class SegmentedText:
         self.translation_glossary = {}
         if empty_title:
             self.translated_title = None
+
+    def _update_log(self, text):
+        self.log += f"{text}\n"; print(text)
             
 # ------------------------------------------------------------------------------------------
 # i/o behaviour
