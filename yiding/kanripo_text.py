@@ -10,6 +10,7 @@ from . import text_manipulators
 # ------------------------------------------------------------------------------------------
 
 PARSING_ERROR_MESSAGE = "nonexistent or unknown Kanripo documentation"
+KANRIPO_ERROR = "404: Not Found"
 
 # ------------------------------------------------------------------------------------------
 
@@ -38,9 +39,6 @@ class KanripoText(SegmentedText):
                      + (f" - {self.translated_title}" if self.translated_title else ""))
         return fulltitle
 
-    def _update_log(self, text):
-        self.log += f"{text}\n"; print(text)
-
     def fetch_and_parse(self):
 
         raw_juan = self.fetch_segments()
@@ -63,7 +61,6 @@ class KanripoText(SegmentedText):
 
         list_of_juan = []
         self._update_log(f"Kanripo code: {self.kanripo_code}\n")
-        KANRIPO_ERROR = "404: Not Found"
 
         i = 0
         misfetches = 0
