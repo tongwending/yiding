@@ -1,0 +1,983 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yiding:schema:project:1",
+
+  "title": "Yiding Project File",
+  "description": "Schema for Yiding .yiding project files.",
+  "type": "object",
+
+  "required": [
+    "format",
+    "format_version",
+    "yiding_version",
+    "text_type",
+    "metadata",
+    "source",
+    "settings",
+    "workflow",
+    "runs",
+    "provenance",
+    "text",
+    "glossaries",
+    "log"
+  ],
+
+  "properties": {
+    "format": {
+      "type": "string",
+      "const": "yiding"
+    },
+
+    "format_version": {
+      "type": "integer",
+      "const": 1
+    },
+
+    "yiding_version": {
+      "type": "string"
+    },
+
+    "created_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+
+    "modified_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+
+    "text_type": {
+      "type": "string",
+      "enum": [
+        "raw",
+        "kanripo"
+      ]
+    },
+
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+
+    "source": {
+      "type": "object"
+    },
+
+    "settings": {
+      "$ref": "#/$defs/project_settings"
+    },
+
+    "workflow": {
+      "$ref": "#/$defs/workflow"
+    },
+
+    "runs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/run"
+      }
+    },
+
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+
+    "text": {
+      "$ref": "#/$defs/text_data"
+    },
+
+    "glossaries": {
+      "$ref": "#/$defs/glossaries"
+    },
+
+    "log": {
+      "type": "string"
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "text_type": {
+            "const": "raw"
+          }
+        }
+      },
+
+      "then": {
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/raw_source"
+          }
+        }
+      }
+    },
+
+    {
+      "if": {
+        "properties": {
+          "text_type": {
+            "const": "kanripo"
+          }
+        }
+      },
+
+      "then": {
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/kanripo_source"
+          }
+        }
+      }
+    }
+  ],
+
+  "additionalProperties": false,
+
+  "$defs": {
+    "metadata": {
+      "type": "object",
+
+      "required": [
+        "original_title",
+        "translated_title",
+        "translation_language",
+        "properties",
+        "is_structured",
+        "is_punctuated",
+        "is_translated",
+        "is_term_extracted",
+        "is_glossary_extracted"
+      ],
+
+      "properties": {
+        "original_title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "translated_title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "translation_language": {
+            "type": ["string", "null"]
+        },
+        
+        "properties": {
+          "type": "array"
+        },
+
+        "is_structured": {
+          "type": "boolean"
+        },
+
+        "is_punctuated": {
+          "type": "boolean"
+        },
+        
+        "is_translated": {
+          "type": "boolean"
+        },
+
+        "is_term_extracted": {
+          "type": "boolean"
+        },
+
+        "is_glossary_extracted": {
+          "type": "boolean"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "segmentation_source": {
+      "type": "object",
+
+      "required": [
+        "divider",
+        "keep_divider",
+        "divider_is_whole_line"
+      ],
+
+      "properties": {
+        "divider": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "keep_divider": {
+          "type": "boolean"
+        },
+
+        "divider_is_whole_line": {
+          "type": "boolean"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "raw_source": {
+      "type": "object",
+
+      "required": [
+        "unpunctuated",
+        "punctuated",
+        "translation"
+      ],
+
+      "properties": {
+        "unpunctuated": {
+          "$ref": "#/$defs/segmentation_source"
+        },
+
+        "punctuated": {
+          "$ref": "#/$defs/segmentation_source"
+        },
+
+        "translation": {
+          "$ref": "#/$defs/segmentation_source"
+        }
+      },
+
+      "additionalProperties": false
+    },
+    
+    "kanripo_source": {
+      "type": "object",
+
+      "required": [
+        "kanripo_code",
+        "glosses_on"
+      ],
+
+      "properties": {
+        "kanripo_code": {
+          "type": "string"
+        },
+
+        "glosses_on": {
+          "type": "boolean"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "model_settings": {
+      "type": "object",
+
+      "required": [
+        "model",
+        "reasoning",
+        "verbosity",
+        "temperature",
+        "top_p"
+      ],
+
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+
+        "reasoning": {
+          "oneOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "string",
+              "enum": [
+                "none",
+                "minimal",
+                "low",
+                "medium",
+                "high"
+              ]
+            }
+          ]
+        },
+
+        "verbosity": {
+          "oneOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            }
+          ]
+        },
+
+        "temperature": {
+          "oneOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2
+            }
+          ]
+        },
+
+        "top_p": {
+          "oneOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          ]
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "enabled_setting": {
+      "type": "object",
+
+      "required": [
+        "enabled"
+      ],
+
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+
+      "additionalProperties": false
+    },
+    
+    "punctuation_settings": {
+      "type": "object",
+
+      "required": [
+        "guidelines",
+        "facsimile_span",
+        "punctuation_span",
+        "max_unsegmented_span",
+        "max_punctuation_attempts",
+        "punctuation",
+        "cross_check",
+        "cross_examination",
+        "cross_correction"
+      ],
+
+      "properties": {
+          
+        "guidelines": {
+          "type": "string"
+        },
+
+        "facsimile_span": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "punctuation_span": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "max_unsegmented_span": {
+          "type": "integer",
+          "minimum": 1
+        },
+
+        "max_punctuation_attempts": {
+          "type": "integer",
+          "minimum": 1
+        },
+
+        "punctuation": {
+          "$ref": "#/$defs/model_settings"
+        },
+
+        "cross_check": {
+          "$ref": "#/$defs/enabled_setting"
+        },
+
+        "cross_examination": {
+          "$ref": "#/$defs/model_settings"
+        },
+
+        "cross_correction": {
+          "$ref": "#/$defs/model_settings"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "translation_settings": {
+      "type": "object",
+
+      "required": [
+        "guidelines",
+        "language",
+        "glossary",
+        "translation_span",
+        "translation",
+        "glossary_extraction",
+        "cross_check",
+        "cross_examination",
+        "cross_correction",
+        "llm_glossary_selection",
+        "glossary_selection"
+      ],
+
+      "properties": {
+          
+        "guidelines": {
+          "type": "string"
+        },
+
+        "language": {
+          "type": "string"
+        },
+
+        "glossary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "translation_span": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "translation": {
+          "$ref": "#/$defs/model_settings"
+        },
+
+        "glossary_extraction": {
+          "$ref": "#/$defs/model_settings"
+        },
+
+        "llm_glossary_selection": {
+          "$ref": "#/$defs/enabled_setting"
+        },
+
+        "glossary_selection": {
+          "$ref": "#/$defs/model_settings"
+        },
+                
+        "cross_check": {
+          "$ref": "#/$defs/enabled_setting"
+        },
+
+        "cross_examination": {
+          "$ref": "#/$defs/model_settings"
+        },
+
+        "cross_correction": {
+          "$ref": "#/$defs/model_settings"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "extraction_settings": {
+      "type": "object",
+
+      "required": [
+        "guidelines",
+        "span",
+        "extraction"
+      ],
+
+      "properties": {
+        "guidelines": {
+          "type": "string"
+        },
+
+        "span": {
+          "type": "integer",
+          "minimum": 1
+        },
+
+        "extraction": {
+          "$ref": "#/$defs/model_settings"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "project_settings": {
+      "type": "object",
+
+      "required": [
+        "punctuation",
+        "translation",
+        "term_extraction",
+        "glossary_extraction"
+      ],
+
+      "properties": {
+        "punctuation": {
+          "$ref": "#/$defs/punctuation_settings"
+        },
+
+        "translation": {
+          "$ref": "#/$defs/translation_settings"
+        },
+
+        "term_extraction": {
+          "$ref": "#/$defs/extraction_settings"
+        },
+
+        "glossary_extraction": {
+          "$ref": "#/$defs/extraction_settings"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "workflow": {
+      "type": "object",
+
+      "required": [
+        "status",
+        "operation",
+        "active_run_id",
+        "working_i",
+        "working_text",
+        "working_labels",
+        "translation_i",
+        "term_extraction_i",
+        "glossary_extraction_i",
+        "autosaved_at"
+      ],
+
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "idle",
+            "in_progress",
+            "completed",
+            "failed",
+            "cancelled"
+          ]
+        },
+
+        "operation": {
+          "type": [
+            "string",
+            "null"
+          ],
+
+          "enum": [
+            null,
+            "punctuation",
+            "translation",
+            "term_extraction",
+            "glossary_extraction"
+          ]
+        },
+
+        "active_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "working_i": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "working_text": {
+          "type": "string"
+        },
+
+        "working_labels": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "integer",
+                "minimum": 0
+              }
+            ],
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        
+        "translation_i": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "term_extraction_i": {
+          "type": "integer",
+          "minimum": 0
+        },
+
+        "glossary_extraction_i": {
+          "type": "integer",
+          "minimum": 0
+        },
+        
+        "autosaved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "run": {
+      "type": "object",
+
+      "required": [
+        "id",
+        "operation",
+        "status",
+        "started_at",
+        "completed_at",
+        "settings"
+      ],
+
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+
+        "operation": {
+          "type": "string",
+          "enum": [
+            "punctuation",
+            "translation",
+            "term_extraction",
+            "glossary_extraction"
+          ]
+        },
+
+        "status": {
+          "type": "string",
+          "enum": [
+            "in_progress",
+            "completed",
+            "failed",
+            "cancelled"
+          ]
+        },
+
+        "started_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+
+        "completed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+
+        "settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/punctuation_settings"
+            },
+            {
+              "$ref": "#/$defs/translation_settings"
+            },
+            {
+              "$ref": "#/$defs/extraction_settings"
+            }
+          ]
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "provenance": {
+      "type": "object",
+
+      "required": [
+        "punctuated_segment_run_ids",
+        "translated_segment_run_ids"
+      ],
+
+      "properties": {
+        "punctuated_segment_run_ids": {
+          "type": "array",
+
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+
+        "translated_segment_run_ids": {
+          "type": "array",
+
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "text_data": {
+      "type": "object",
+
+      "required": [
+        "segments",
+        "unpunctuated_segments",
+        "punctuated_segments",
+        "translated_segments",
+        "page_labels",
+        "page_lines",
+        "segment_labels",
+        "glosses",
+        "punctuated_glosses"
+      ],
+
+      "properties": {
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "unpunctuated_segments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "punctuated_segments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "translated_segments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "page_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "page_lines": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+
+        "segment_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "glosses": {
+          "type": "array"
+        },
+
+        "punctuated_glosses": {
+          "type": "array"
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "glossary_source": {
+      "type": "object",
+
+      "required": [
+        "filename",
+        "sha256",
+        "entry_count"
+      ],
+
+      "properties": {
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+
+        "entry_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "glossary_row": {
+      "type": "object",
+
+      "required": [
+        "chinese",
+        "pinyin",
+        "translations"
+      ],
+
+      "properties": {
+        "chinese": {
+          "type": "string"
+        },
+
+        "pinyin": {
+          "type": "string"
+        },
+
+        "translations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "project_glossary": {
+      "type": "object",
+
+      "required": [
+        "rows"
+      ],
+
+      "properties": {
+        "rows": {
+          "type": "array",
+
+          "items": {
+            "$ref": "#/$defs/glossary_row"
+          }
+        }
+      },
+
+      "additionalProperties": false
+    },
+
+    "glossaries": {
+      "type": "object",
+
+      "required": [
+        "source",
+        "translation_glossary",
+        "new_glossary",
+        "extracted_terms",
+        "extracted_glossary"
+      ],
+
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/glossary_source"
+        },
+
+        "translation_glossary": {
+          "$ref": "#/$defs/project_glossary"
+        },
+
+        "new_glossary": {
+          "$ref": "#/$defs/project_glossary"
+        },
+
+        "extracted_terms": {
+          "$ref": "#/$defs/project_glossary"
+        },
+
+        "extracted_glossary": {
+          "$ref": "#/$defs/project_glossary"
+        }
+      },
+
+      "additionalProperties": false
+    }
+  }
+}
