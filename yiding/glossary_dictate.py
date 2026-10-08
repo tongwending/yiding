@@ -2,6 +2,9 @@
 # glossary_dictate
 # ------------------------------------------------------------------------------------------
 
+from copy import deepcopy
+
+# ------------------------------------------------------------------------------------------
 
 def load_glossary(file_or_text):
     
@@ -18,7 +21,7 @@ def load_glossary(file_or_text):
 
     for row in list_of_rows:
         words = [x.strip() for x in row.split(",")]
-        if len(words) > 2:
+        if len(words) >= 2:
             glossary[words[0]] = [words[1], {w for w in words[2:] if w.strip() != ""} ]
 
     return glossary
@@ -29,9 +32,9 @@ def update_glossary(glossary, addition):
 
     for term in addition:
         if term in glossary:
-                glossary[term][1].update(addition[term][1])
+            glossary[term][1].update(addition[term][1])
         else:
-            glossary[term] = addition[term]
+            glossary[term] = deepcopy(addition[term])
 
 # ------------------------------------------------------------------------------------------
 
@@ -71,11 +74,13 @@ def destylize_glossary(glossary_text):
             chinese = chinese_and_pinyin[0].strip()
             pinyin = chinese_and_pinyin[1].strip(')')
 
-            translations = term_and_translations[1].split(',')
-            translations = [t.strip() for t in translations]
-            set_of_translations = set(translations)
+            translations = {
+                t.strip()
+                for t in term_and_translations[1].split(',')
+                if t.strip()
+            }
 
-            pinyin_and_set_of_translations = [pinyin, set_of_translations]
+            pinyin_and_set_of_translations = [pinyin, translations]
 
             glossary_proper[chinese] = pinyin_and_set_of_translations
 
@@ -85,12 +90,69 @@ def destylize_glossary(glossary_text):
 
 # ------------------------------------------------------------------------------------------
 
-def glossary_to_csv(glossary, filename): #  not used now but might be handy later
-    with open(filename, "w", encoding="utf-8") as file:
-        for key, value in glossary.items():
-            file.write(f"{key},{value[0]}")
-            for translation in value[1]:
-                file.write(f",{translation}")
-            file.write("\n")
+def destylize_terms(term_text):
+    
+    term_lines = term_text.splitlines()
+
+    terms_proper = {}
+
+    for line in term_lines:
+
+        if "(" in line:
+            chinese_and_pinyin = line.split('(')
+            chinese = chinese_and_pinyin[0].strip()
+            pinyin = chinese_and_pinyin[1].strip()
+            pinyin = pinyin.strip(')')
+            empty_translations = set()
+            terms_proper[chinese] = [pinyin, empty_translations]
+
+    return terms_proper
 
 # ------------------------------------------------------------------------------------------
+
+def unite_glossaries(glossary_A, glossary_B):
+
+    united_glossary = deepcopy(glossary_A)
+    update_glossary(united_glossary, glossary_B)
+
+    return united_glossary
+
+# ------------------------------------------------------------------------------------------
+
+def differentiate_glossaries(minuend_glossary, subtrahend_glossary):
+
+    #The result is translation_glossary minus its intersection with base_glossary.
+
+    differentiated_glossary = {}
+
+    for term in minuend_glossary:
+        pinyin = minuend_glossary[term][0]
+        translations = minuend_glossary[term][1]
+        
+        if term in subtrahend_glossary:
+            remaining_translations = translations - subtrahend_glossary[term][1]
+
+            if remaining_translations or not translations:
+                differentiated_glossary[term] = [pinyin, set(remaining_translations)]
+                
+        else:
+            differentiated_glossary[term] = [pinyin, set(translations)]
+
+    return differentiated_glossary
+
+# ------------------------------------------------------------------------------------------
+
+def intersect_glossaries(glossary_A, glossary_B):
+
+    intersected_glossary = {}
+
+    for term in glossary_A:
+
+        if term in glossary_B:
+            translations = (glossary_A[term][1] & glossary_B[term][1])
+            intersected_glossary[term] = [glossary_A[term][0], set(translations)]
+                
+    return intersected_glossary
+
+# ------------------------------------------------------------------------------------------
+

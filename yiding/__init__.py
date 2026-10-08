@@ -5,58 +5,124 @@
 """
 Public API:
 
-- translate("kanripo_code",
-            settings = "my_settings.toml",
-            translated_title = "my_title",
-            output_file = "docx", table = True, punctuation = True)
-                 
-- punctuate("kanripo_code",
-            settings = "my_settings.toml",
-            output_file = "docx")
+- create_yiding(
+      "my_project.yiding",
+      unpunctuated_text = "...",
+      unpunctuated_divider = "\\n",
+      original_title = "My Title",
+      settings = "my_settings.toml",
+  )
 
-- continue_translating("my_pickle.pkl",
-                       output_file = "docx", table = True, punctuation = True)
+- translate(
+      "my_project.yiding",
+      settings = "my_settings.toml",
+      output_file = "docx",
+      table = True,
+      punctuation = True,
+  )
 
-- continue_punctuating("my_pickle.pkl",
-                       output_file = "docx")
+- translate_bulk(
+      ["project_1.yiding", "project_2.yiding"],
+      settings = "my_settings.toml",
+      output_file = "docx",
+      table = True,
+      punctuation = True,
+  )
 
-- translate_anew("my_pickle.pkl",
-                 settings = "my_settings.toml",
-                 translated_title = "my_title",
-                 output_file = "docx", table = True, punctuation = True)
+- translate_anew(
+      "my_project.yiding",
+      settings = "my_settings.toml",
+      translated_title = "My Title",
+      output_file = "docx",
+      table = True,
+      punctuation = True,
+  )
 
-- translate_bulk(["kanripo_code_1", "kanripo_code_2", "kanripo_code_n"],
-                 translated_titles = ["title_1", "title_2", "title_n"],
-                 settings = "my_settings.toml",
-                 output_file = "docx", table = True, punctuation = True)
+- translate_from_kanripo(
+      "KR5h0008",
+      settings = "my_settings.toml",
+      translated_title = "My Title",
+      output_file = "docx",
+      table = True,
+      punctuation = True,
+  )
 
-- punctuate_bulk(["kanripo_code_1", "kanripo_code_2", "kanripo_code_n"],
-                 settings = "my_settings.toml",
-                 output_file = "docx")
-                 
+- translate_bulk_from_kanripo(
+      ["KR5h0008", "KR5a0001"],
+      settings = "my_settings.toml",
+      translated_titles = ["Title 1", "Title 2"],
+      output_file = "docx",
+      table = True,
+      punctuation = True,
+  )
+
+- punctuate(
+      "my_project.yiding",
+      settings = "my_settings.toml",
+      output_file = "docx",
+  )
+
+- punctuate_bulk(
+      ["project_1.yiding", "project_2.yiding"],
+      settings = "my_settings.toml",
+      output_file = "docx",
+  )
+
+- punctuate_from_kanripo(
+      "KR5h0008",
+      settings = "my_settings.toml",
+      output_file = "docx",
+  )
+
+- punctuate_bulk_from_kanripo(
+      ["KR5h0008", "KR5a0001"],
+      settings = "my_settings.toml",
+      output_file = "docx",
+  )
+
+- set_key(
+      provider: (openai, google)
+      api_key
+  )
+
 - get_settings()
 
-- export("my_pickle.pkl",
-         punctuation = False, translation = False,
-         output_file = "docx", table = False)
-         
-- export_log("my_pickle.pkl")
+- export(
+      "my_project.yiding",
+      punctuation = False,
+      translation = False,
+      output_file = "docx",
+      table = False,
+  )
 
-- update_glossary("my_glossary.csv",
-                  "my_pickle.pkl",
-                  output_file = "my_glossary_v2.0.csv")
+- export_log(
+      "my_project.yiding"
+  )
+
+- update_glossary(
+      "my_glossary.csv",
+      "my_project.yiding",
+      output_file = "my_glossary_v2.0.csv",
+  )
 """
 
 # ------------------------------------------------------------------------------------------
 
 from .commands import (
+    create_yiding,
+
     translate,
     translate_bulk,
+    translate_anew,
+    translate_from_kanripo,
+    translate_bulk_from_kanripo,
+
     punctuate,
     punctuate_bulk,
-    continue_translating,
-    continue_punctuating,
-    translate_anew,
+    punctuate_from_kanripo,
+    punctuate_bulk_from_kanripo,
+
+    set_key,
     get_settings,
     export,
     export_log,
@@ -64,13 +130,20 @@ from .commands import (
 )
 
 __all__ = [
+    "create_yiding",
+
     "translate",
     "translate_bulk",
+    "translate_anew",
+    "translate_from_kanripo",
+    "translate_bulk_from_kanripo",
+
     "punctuate",
     "punctuate_bulk",
-    "continue_translating",
-    "continue_punctuating",
-    "translate_anew",
+    "punctuate_from_kanripo",
+    "punctuate_bulk_from_kanripo",
+
+    "set_key",
     "get_settings",
     "export",
     "export_log",
@@ -78,5 +151,3 @@ __all__ = [
 ]
 
 # ------------------------------------------------------------------------------------------
-
-

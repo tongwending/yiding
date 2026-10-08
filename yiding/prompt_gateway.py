@@ -8,32 +8,41 @@
 # from .gpt_invoker import GPT_Invoker
 # from .gemini_invoker import Gemini_Invoker
 
+import keyring
+
+from .llm_lists import is_open_ai, is_google
 from . import instructors
-
-# ------------------------------------------------------------------------------------------
-
-GPT_MODELS = ("o1", "o1-mini", "o1-pro",
-              "o3", "o3-deep-research", "o4-mini-deep-research",
-              "o4-mini")
-
-GEMINI_MODELS = ()
-
-NO_API_KEY_ERROR = "Error: No API key in file."
 
 # ------------------------------------------------------------------------------------------
 
 class PromptGateway:
 
-    def __init__(self, settings):
+    def __init__(self, settings, job):
 
         self.settings = settings
+        self.job = job
 
         self.openai_client = None
         self.google_client = None
         
         self.invokers = []
+        
+        self.punctuator = None
+        self.punctuation_examinator = None
+        self.punctuation_corrector = None
 
-        if self.settings["punctuation"]["enabled"]:
+        self.glossary_selector = None
+        self.translator = None
+        self.translation_examinator = None
+        self.translation_corrector = None
+        self.glossary_extractor = None
+
+        self.mono_glossary_selector = None
+        
+        self.mono_glossary_extractor = None
+
+
+        if self.job == "punctuation":
         
             self.punctuator = self.create_invoker(
                 self.settings["punctuation"]["punctuation"],
@@ -55,7 +64,7 @@ class PromptGateway:
                     instructors.instruct_punctuation_correction(self.settings))
                 self.invokers.append(self.punctuation_corrector)
 
-        if self.settings["translation"]["enabled"]:
+        if self.job == "translation":
             
             if not self.settings["translation"]["llm_glossary_selection"]["enabled"]:
                 self.glossary_selector = None
@@ -90,6 +99,20 @@ class PromptGateway:
                     instructors.instruct_glossary_extraction(self.settings))
             self.invokers.append(self.glossary_extractor)
 
+        if self.job == "term_extraction":
+            
+            self.mono_glossary_selector = self.create_invoker(
+                self.settings["term_extraction"]["extraction"],
+                instructors.instruct_mono_glossary_selection(self.settings))
+            self.invokers.append(self.mono_glossary_selector)
+            
+        if self.job == "glossary_extraction":
+            
+            self.mono_glossary_extractor = self.create_invoker(
+                self.settings["glossary_extraction"]["extraction"],
+                instructors.instruct_mono_glossary_extraction(self.settings))
+            self.invokers.append(self.mono_glossary_extractor)
+
         self.log = ""
         for inv in self.invokers:
             self._update_log(f"------------\n{inv.instructions}")
@@ -99,7 +122,7 @@ class PromptGateway:
         self.log += text
 
     def create_invoker(self, x, instructions, boolean_response = False):
-        if x["model"] in GPT_MODELS or x["model"].startswith("gpt"):
+        if is_open_ai(x["model"]):
             from .gpt_invoker import GPT_Invoker
             return GPT_Invoker(
                         self.create_client(x["model"]),
@@ -111,7 +134,7 @@ class PromptGateway:
                         (x["top_p"] if x["top_p"] is not False else None),
                         boolean_response)
 
-        elif x["model"] in GEMINI_MODELS or x["model"].startswith("gemini"):
+        elif is_google(x["model"]):
             from .gemini_invoker import Gemini_Invoker
             return Gemini_Invoker(
                         self.create_client(x["model"]),
@@ -124,57 +147,41 @@ class PromptGateway:
                         boolean_response)
         else:
             raise ValueError("Error: Unknown LLM model.")
+
                              
     def create_client(self, model):
-        
-        if model in GPT_MODELS or model.startswith("gpt"):
+
+        if is_open_ai(model):
+
             if self.openai_client is None:
-                if self.settings["api_serial_keys"]["openai"].lower().endswith(".txt"):
-                    with open(self.settings["api_serial_keys"]["openai"],"r",encoding="utf-8") as f:
-                        api_key = f.read().strip()
-                        if not api_key:
-                            raise ValueError(NO_API_KEY_ERROR)
-                else:
-                    api_key = self.settings["api_serial_keys"]["openai"]
+                api_key = keyring.get_password("Yiding", "OpenAI")
+
+                if not api_key:
+                    raise ValueError("No OpenAI API key is saved in Yiding.")
+
                 from openai import OpenAI
-                self.openai_client = OpenAI(api_key = api_key)
+                self.openai_client = OpenAI(api_key=api_key)
+
             client = self.openai_client
 
-        elif model in GEMINI_MODELS or model.startswith("gemini"):
+        elif is_google(model):
+
             if self.google_client is None:
-                if self.settings["api_serial_keys"]["google"].lower().endswith(".txt"):
-                    with open(self.settings["api_serial_keys"]["google"],"r",encoding="utf-8") as f:
-                        api_key = f.read().strip()
-                        if not api_key:
-                            raise ValueError(NO_API_KEY_ERROR)
-                else:
-                    api_key = self.settings["api_serial_keys"]["google"]
+
+                api_key = keyring.get_password("Yiding", "Google")
+
+                if not api_key:
+                    raise ValueError("No Google API key is saved in Yiding.")
+
                 from google.genai import Client
-                self.google_client = Client(api_key = api_key)
+                self.google_client = Client(api_key=api_key)
+
             client = self.google_client
 
         else:
+
             raise ValueError(f"Unknown model in settings: {model}")
 
         return client
-
-    def __getstate__(self):
-        """Return picklable state (drop the LLM clients)."""
-        state = self.__dict__.copy()
-        # client is not picklable
-        state.pop("openai_client", None)
-        state.pop("google_client", None)
-        return state
-
-
-    def __setstate__(self, state):
-        """Restore state and recreate the LLM clients."""
-        self.__dict__.update(state)
-        # emtpy possible old clients:
-        self.openai_client = None
-        self.google_client = None
-        # re-bind every invoker to the client creating new clients on the way:
-        for inv in self.invokers:
-            inv.bind_client(self.create_client(inv.model))
 
 # ------------------------------------------------------------------------------------------

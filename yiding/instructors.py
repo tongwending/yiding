@@ -33,8 +33,11 @@ PARENTHESES (SMALL-CHARACTER NOTES)
 - Punctuate surrounding text appropriately while keeping the parenthetical content in place.
 
 CHARACTER INTEGRITY
-- Do NOT change, replace, reorder, or add ANY Chinese characters.
+- Do NOT change, replace, reorder, omit, or add ANY Chinese characters.
+- Preserve every original character exactly as provided: do not normalize, modernize, simplify, traditionalize, correct, substitute, or otherwise alter any character.
+- Do NOT omit 也.
 - If a character is ⬤, it means it is an unknown character. Do not change it.
+- The sequence of Chinese characters in the output must be identical to the original sequence.
 
 OUTPUT CONTRACT
 - Output ONLY the punctuated text (the punctuated "Text to be punctuated:"), and nothing else.
@@ -46,7 +49,8 @@ EDGE CASE
 CONTINUATION NOTE
 - The provided text may end abruptly; do not “complete” it. Punctuate as-is, even if the final block is incomplete.
 
-PUNCTUATION GUIDELINES{settings["punctuation"]["guidelines"]}
+PUNCTUATION GUIDELINES (MUST FOLLOW)
+{settings["punctuation"]["guidelines"]}
 """
 
 # ------------------------------------------------------------------------------------------
@@ -113,8 +117,12 @@ CORRECTION RULES
 - Segment B is a single block (paragraph/stanza/other block): do NOT insert <break> and do NOT restructure it into multiple blocks.
 
 CHARACTER INTEGRITY
-- Do NOT change, replace, reorder, or add ANY Chinese characters of segment B.
+- Do NOT change, replace, reorder, omit, or add ANY Chinese characters of segment B.
+- Preserve every character in segment B exactly as provided, including its exact written form or variant. Do not normalize, modernize, simplify, traditionalize, correct, emend, substitute, or otherwise alter any character.
+- If segment A contains a different character or character variant at the corresponding position, ALWAYS retain the character from segment B. Segment A must never override, correct, or normalize the characters of segment B.
+- Do NOT omit 也.
 - If a character is ⬤, it means it is an unknown character. Do not change it.
+- The sequence of Chinese characters in the output must be identical to the sequence in segment B.
 
 OUTPUT
 - Return ONLY the minimally corrected punctuated Segment B (corrected B').
@@ -140,9 +148,39 @@ Example:
 term 1
 term 2
 term 3
+{GENERAL_GLOSSARY_SELECTION_INSTRUCTIONS}"""
 
+def instruct_mono_glossary_selection(settings):
+    return f"""You will be given a segment of Chinese text. Select the Chinese terms that a translator would need to translate the text.
+
+TASK
+- Extract and list the key Chinese terms that should appear in a translation glossary for this segment.
+- Provide accented Pinyin for each selected term.
+
+OUTPUT FORMAT
+- Output ONLY the selected terms in this exact format:
+Chinese term (accented Pinyin)
+- One entry per line.
+- No bullets, numbering, translations, explanations, headers, labels, or extra text.
+
+Example:
+道 (dào)
+無為 (wú wéi)
+玄德 (xuán dé)
+
+PINYIN RULES
+- Provide accented (tone-marked) Pinyin in parentheses.
+- Separate Pinyin syllables with spaces.
+- Do not separate the Chinese characters.
+- Use correct umlauts where required (e.g., ü).
+{GENERAL_GLOSSARY_SELECTION_INSTRUCTIONS}
+
+FURTHER GUIDELINES (MUST FOLLOW)
+{settings["term_extraction"]["guidelines"]}"""
+
+GENERAL_GLOSSARY_SELECTION_INSTRUCTIONS = """
 DO NOT ADD
-- Do not add any explanations, headers, labels, or extra text. Output only the list.
+- Do not add any translations, explanations, headers, labels, or extra text. Output only the list.
 
 IGNORE FOOTNOTE MARKERS
 - If the text contains bracketed fullwidth numerals such as ［１］, ［２］, ［３］, treat them as footnote placeholders and ignore them.
@@ -197,7 +235,8 @@ OUTPUT
 EDGE CASE
 - If the user provides an empty string OR a single underscore character "_", output exactly "_" and nothing else.
 
-STYLISTIC GUIDELINES (MUST FOLLOW){settings["translation"]["guidelines"]}
+STYLISTIC GUIDELINES (MUST FOLLOW)
+{settings["translation"]["guidelines"]}
 
 GLOSSARY RULES
 - Translate using the glossary provided below when applicable.
@@ -298,18 +337,27 @@ STYLE GUIDELINES (MUST FOLLOW){settings["translation"]["guidelines"]}
 
 def instruct_glossary_extraction(settings):
     return f"""You will be given a Chinese text segment and its corresponding {settings["translation"]["language"]} translation.
+{GENERAL_GLOSSARY_EXTRACTION_INSTRUCTIONS}"""
 
+def instruct_mono_glossary_extraction(settings):
+    return f"""You will be given a Chinese text segment and its corresponding translation.
+{GENERAL_GLOSSARY_EXTRACTION_INSTRUCTIONS}
+
+FURTHER GUIDELINES (MUST FOLLOW)
+{settings["glossary_extraction"]["guidelines"]}"""
+
+GENERAL_GLOSSARY_EXTRACTION_INSTRUCTIONS = """
 TASK
-- Extract a glossary of key Chinese terms from the Chinese segment and map each term to how it is translated in the provided {settings["translation"]["language"]} translation.
+- Extract a glossary of key Chinese terms from the Chinese segment and map each term to how it is translated in the provided translation.
 - Provide accented Pinyin for each Chinese term.
 
 OUTPUT FORMAT (EXACT)
 - Output ONLY a list of lines in this exact format:
-Chinese term (accented Pinyin) = {settings["translation"]["language"]} translation
+Chinese term (accented Pinyin) = translation
 - One entry per line. No bullets, numbering, headers, or extra text.
 
 TRANSLATION SOURCE RULES
-- Do NOT invent or improve translations. Use ONLY the renderings that appear in the provided {settings["translation"]["language"]} translation.
+- Do NOT invent or improve translations. Use ONLY the renderings that appear in the provided translation.
 - If the same Chinese term is translated in multiple ways in the provided translation, list all those renderings separated by commas.
 - Separate multiple meanings/uses with commas (never use slashes).
 - Do not include translation variants that are not present in the provided translation.
@@ -334,7 +382,7 @@ PINYIN RULES
 - Use correct umlauts where required (e.g., ü).
 
 NORMALIZATION RULES
-- Give the {settings["translation"]["language"]} translation in singular form even if the provided translation uses plural (except when a term is inherently plural).
+- Give the translation in singular form even if the provided translation uses plural (except when a term is inherently plural).
 - Capitalize only proper names.
 - Do not include articles.
 """

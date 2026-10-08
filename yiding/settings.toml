@@ -11,7 +11,6 @@ google = "google_sk.txt"
 # -----------------------------------------------------------------------------------------
 
 [punctuation]
-enabled = true
 
     guidelines = """
 - Keep referenced scripture titles intact; do not punctuate inside them.
@@ -20,7 +19,6 @@ enabled = true
 - Use 、 (顿号 dùnhào) to separate list items.
 - Keep honorific chains intact; do not split them with punctuation.
 - If there is a list of terms, titles or headers, use bullet points ● (○ for sublists) and group them together as a unit.
-- Avoid attributive noun constructions (N+N) in the translation unless the N+N form is a common/established term or the glossary specifies it.
 """
     facsimile_span = 1
     punctuation_span = 3 # number of previous punctuated segments in prompts
@@ -56,7 +54,6 @@ enabled = true
 # -----------------------------------------------------------------------------------------
 
 [translation]
-enabled = true
 
     guidelines = """
 - The translation should be easy flowing, readable, and smooth.
@@ -67,6 +64,7 @@ enabled = true
 - Do not start paragraphs with indentation.
 - If the text is in verses (e.g., poem/song), keep the verse structure; each verse should be on its own line.
 - For titles and headers, use capitalization appropriate for a book/text title.
+- Avoid attributive noun constructions (N+N) in the translation unless the N+N form is a common/established term or the glossary specifies it.
 """
     language = "English"
     glossary = "glossary.example.csv"
@@ -112,6 +110,42 @@ enabled = true
         verbosity = "high"
         temperature = false
         top_p = 1
+
+# -----------------------------------------------------------------------------------------
+# term_extraction_settings
+# -----------------------------------------------------------------------------------------
+
+[term_extraction]
+
+guidelines = """
+"""
+
+span = 1
+
+    [term_extraction.extraction]
+    model = "gpt-5.2"
+    reasoning = "none"
+    verbosity = "medium"
+    temperature = 0
+    top_p = false
+
+# -----------------------------------------------------------------------------------------
+# glossary_extraction_settings
+# -----------------------------------------------------------------------------------------
+
+[glossary_extraction]
+
+guidelines = """
+"""
+
+span = 1
+
+    [glossary_extraction.extraction]
+    model = "gpt-5.2"
+    reasoning = "none"
+    verbosity = "medium"
+    temperature = 0
+    top_p = false
 
 # -----------------------------------------------------------------------------------------
 # GPT reasoning options: "none" | "low" | "medium" | "high"
