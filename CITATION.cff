@@ -1,0 +1,16 @@
+cff-version: 0.1.0b1
+message: "If you use Yiding in your research, please cite this software."
+type: software
+
+title: "Yiding 譯鼎: An AI-assisted punctuation and translation pipeline for pre-modern Chinese texts"
+
+authors:
+  - family-names: Karampakakis
+    given-names: Konstantinos
+
+  - family-names: Pettit
+    given-names: J. E. E.
+
+repository-code: "https://github.com/tongwending/yiding"
+
+license: MIT
