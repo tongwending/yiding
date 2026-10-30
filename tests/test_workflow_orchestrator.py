@@ -1,8 +1,4 @@
 """Offline pytest coverage for the revised WorkflowOrchestrator.
-
-Place this file in your project's tests/ directory. When running against the
-uploaded standalone module, set WORKFLOW_ORCHESTRATOR_PATH to that file path;
-otherwise the tests import yiding.workflow_orchestrator.
 """
 import importlib
 import importlib.util
