@@ -9,14 +9,15 @@ import pytest
 
 HERE = pathlib.Path(__file__).resolve().parent
 DATA_DIR = HERE.parent
-INSTRUCTORS_PATH = DATA_DIR / "instructors.py"
+INSTRUCTORS_PATH = next(
+    path for path in (HERE.parent / "instructors.py", HERE / "instructors.py", HERE / "instructors(20261103-030237).py")
+    if path.is_file()
+)
 
 
 @pytest.fixture(scope="session")
 def instructors_module():
-    try:
-        return importlib.import_module("yiding.instructors")
-    except Exception:
+    if True:
         package_name = "_instructors_testpkg"
         package = types.ModuleType(package_name)
         package.__path__ = [str(DATA_DIR)]
@@ -39,6 +40,8 @@ def sample_settings():
         "punctuation": {
             "guidelines": "\n- Use Chinese punctuation naturally.\n- Preserve meaningful structure.",
         },
+        "term_extraction": {"guidelines": "Prefer canonical term forms."},
+        "glossary_extraction": {"guidelines": "Check attested renderings."},
         "translation": {
             "language": "English",
             "guidelines": "\n- Keep a clear scholarly tone.\n- Use simple modern English.",
@@ -78,7 +81,7 @@ def test_instruct_punctuation_correction_includes_minimal_edit_and_no_break_rule
 
     assert "make minimal edits" in text.lower()
     assert "do NOT insert <break>" in text
-    assert "Do NOT change, replace, reorder, or add ANY Chinese characters of segment B." in text
+    assert "Do NOT change, replace, reorder, omit, or add ANY Chinese characters of segment B." in text
     assert "STYLE GUIDELINES (MUST FOLLOW)" in text
     assert "Use Chinese punctuation naturally." in text
 
@@ -134,9 +137,9 @@ def test_instruct_glossary_extraction_includes_exact_format_pinyin_and_normaliza
     text = instructors_module.instruct_glossary_extraction(sample_settings)
 
     assert "its corresponding English translation" in text
-    assert "Chinese term (accented Pinyin) = English translation" in text
+    assert "Chinese term (accented Pinyin) = translation" in text
     assert "Provide accented Pinyin" in text
-    assert "Give the English translation in singular form" in text
+    assert "Give the translation in singular form" in text
     assert "Do NOT invent or improve translations." in text
 
 
@@ -170,6 +173,8 @@ def test_prompt_builders_do_not_leave_unexpanded_settings_placeholders(instructo
         instructors_module.instruct_translation_examination(sample_settings),
         instructors_module.instruct_translation_correction(sample_settings),
         instructors_module.instruct_glossary_extraction(sample_settings),
+        instructors_module.instruct_mono_glossary_selection(sample_settings),
+        instructors_module.instruct_mono_glossary_extraction(sample_settings),
     ]
 
     for text in texts:
@@ -205,7 +210,53 @@ def test_edge_case_underscore_rule_appears_in_generation_prompts(instructors_mod
         instructors_module.instruct_translation(sample_settings),
         instructors_module.instruct_translation_correction(sample_settings),
         instructors_module.instruct_glossary_extraction(sample_settings),
+        instructors_module.instruct_mono_glossary_selection(sample_settings),
+        instructors_module.instruct_mono_glossary_extraction(sample_settings),
     ]
 
     for text in texts:
         assert 'output exactly "_"' in text.lower()
+
+
+# New standalone term-selection and glossary-extraction prompt contracts.
+
+def test_mono_glossary_selection_uses_accented_pinyin_and_guidelines(instructors_module, sample_settings):
+    text = instructors_module.instruct_mono_glossary_selection(sample_settings)
+    assert "Chinese term (accented Pinyin)" in text
+    assert "道 (dào)" in text
+    assert "Separate Pinyin syllables with spaces." in text
+    assert "Prefer canonical term forms." in text
+    assert "If the segment contains a title" in text
+    assert "ignore them" in text  # fullwidth footnote markers
+
+
+def test_mono_glossary_extraction_uses_provided_translation_and_guidelines(instructors_module, sample_settings):
+    text = instructors_module.instruct_mono_glossary_extraction(sample_settings)
+    assert "Chinese term (accented Pinyin) = translation" in text
+    assert "Use ONLY the renderings that appear in the provided translation." in text
+    assert "Give the translation in singular form" in text
+    assert "Check attested renderings." in text
+
+
+def test_punctuation_prompts_enforce_character_variants_and_unknown_character(instructors_module, sample_settings):
+    punctuate = instructors_module.instruct_punctuation(sample_settings)
+    correct = instructors_module.instruct_punctuation_correction(sample_settings)
+    assert "sequence of Chinese characters in the output" in punctuate
+    assert "If a character is ⬤" in punctuate
+    assert "ALWAYS retain the character from segment B" in correct
+    assert "do NOT insert <break>" in correct
+
+
+def test_all_text_generation_prompts_handle_underscore(instructors_module, sample_settings):
+    builders = (
+        lambda: instructors_module.instruct_punctuation(sample_settings),
+        lambda: instructors_module.instruct_punctuation_correction(sample_settings),
+        lambda: instructors_module.instruct_glossary_selection(sample_settings),
+        lambda: instructors_module.instruct_mono_glossary_selection(sample_settings),
+        lambda: instructors_module.instruct_translation(sample_settings),
+        lambda: instructors_module.instruct_translation_correction(sample_settings),
+        lambda: instructors_module.instruct_glossary_extraction(sample_settings),
+        lambda: instructors_module.instruct_mono_glossary_extraction(sample_settings),
+    )
+    for build in builders:
+        assert 'output exactly "_"' in build().lower()
